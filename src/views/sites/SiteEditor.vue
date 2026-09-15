@@ -1,0 +1,815 @@
+<script setup>
+/**
+ * 添加 / 编辑站点 / 添加小组件 弹窗
+ * - 左侧 tab：自定义站点 / 小组件
+ * - 右侧内容：根据当前 tab 切换
+ *   - "自定义站点" tab：保留原添加/编辑表单
+ *   - "小组件" tab：以卡片列表呈现 widget,目前仅含内置工具 split-text
+ *     - 内置工具类走真实写入路径：
+ *         emit('add-tool', 'split-text') → 父组件写入当前面板站点(1x1)
+ * - 支持全屏放大
+ */
+import { ref, watch, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import BaseDialog from '@/components/BaseDialog.vue'
+import { $t } from '@/composables/useI18n'
+import { useMessage } from '@/composables/useMessage'
+import { useEscapeClose } from '@/composables/useEscapeClose'
+import { TOOL_KINDS } from '@/db'
+import { FAVICON_API } from '@/config/api'
+import { loadEngineSvg, THESVG_PREFIX, SITE_ICON_PRESETS } from '@/utils/thesvg'
+import WidgetPreviewDialog from '@/views/dialogs/WidgetPreviewDialog.vue'
+import {
+  RiGlobalLine,
+  RiDashboardLine,
+  RiAddLine,
+  RiSearchLine,
+} from '@remixicon/vue'
+
+const props = defineProps({
+  open: { type: Boolean, default: false },
+  editing: { type: Object, default: null },
+})
+const emit = defineEmits(['save', 'close', 'add-tool'])
+
+const form = ref({ name: '', url: '', icon: '' })
+const errorMsg = ref('')
+const activeTab = ref('site') // 'site' | 'widgets'
+const message = useMessage()
+
+/** 右键编辑既有站点时隐藏"小组件"tab（仅新建经添加卡片进入才需要） */
+const isEditing = computed(() => !!props.editing)
+const visibleTabs = computed(() => {
+  const tabs = [{ key: 'site', icon: RiGlobalLine, label: $t('siteEditor.tabs.site') }]
+  if (!isEditing.value) {
+    tabs.push({ key: 'widgets', icon: RiDashboardLine, label: $t('siteEditor.tabs.widgets') })
+  }
+  return tabs
+})
+
+/* ---------------- widgets ---------------- */
+/**
+ * 卡片结构：
+ *  - key:       唯一键
+ *  - icon:      emoji 图标
+ *  - kind:      可选。内置工具类 widget('split-text')，点击「添加」走真实写入
+ *
+ * 当前仅保留内置工具类 widget（split-text），其它 mock widget 已移除
+ */
+const WIDGETS = [
+  { key: 'split-text', icon: '✂️', category: 'tool', kind: 'split-text' },
+  { key: 'free-email', icon: '📫', category: 'tool', kind: 'free-email' },
+  { key: 'wallpaper', icon: '🖼️', category: 'tool', kind: 'wallpaper' },
+]
+
+/** 内置工具 widget 的字面量文案(暂不接入 i18n) */
+const FALLBACK_WIDGET_TEXT = {
+  'split-text': {
+    title: '文本分割',
+    desc: '按分隔符拆分 / 去重 / 分组 / 导出 xlsx',
+  },
+  'free-email': {
+    title: '免费邮箱',
+    desc: '基于 duckmail.sbs 的临时邮箱，接收验证码/通知',
+  },
+  'wallpaper': {
+    title: '壁纸库',
+    desc: 'Wallhaven 精选壁纸：搜索 / 预览 / 一键设为桌面壁纸',
+  },
+}
+
+/** widget 展示文案：内置工具走兜底字面量 */
+function wTitle(w) {
+  if (FALLBACK_WIDGET_TEXT[w.key]) return FALLBACK_WIDGET_TEXT[w.key].title
+  return ''
+}
+function wDesc(w) {
+  if (FALLBACK_WIDGET_TEXT[w.key]) return FALLBACK_WIDGET_TEXT[w.key].desc
+  return ''
+}
+
+/* 当前 WIDGETS 仅含内置工具类,直接透传,无需搜索/分类过滤 */
+const filteredWidgets = computed(() => WIDGETS)
+
+/* ---------------- 小组件预览弹窗 ---------------- */
+/** 当前预览中的 widget（null = 关闭）*/
+const previewWidget = ref(null)
+/** v-model:open 适配：非空 widget 即为打开 */
+const previewOpen = computed({
+  get: () => previewWidget.value !== null,
+  set: (v) => { if (!v) previewWidget.value = null },
+})
+/** 点击 widget 卡片（非「添加」按钮区域）→ 打开预览 */
+function openWidgetPreview(widget) {
+  previewWidget.value = widget
+}
+
+function reset() {
+  errorMsg.value = ''
+  form.value = props.editing
+    ? { ...props.editing }
+    : { name: '', url: '', icon: '' }
+  activeTab.value = 'site'
+  // 关闭时同时收起预览弹窗，避免叠加
+  previewWidget.value = null
+}
+
+/* ---------------- thesvg 图标库悬浮选择 ---------------- */
+/** 预设 SVG 缓存（悬浮层首次打开时懒加载，避免首屏下载） */
+const presetSvgs = ref({})
+let presetsLoaded = false
+async function loadPresets() {
+  if (presetsLoaded) return
+  presetsLoaded = true
+  const entries = await Promise.all(
+    SITE_ICON_PRESETS.map(async ({ slug }) => [slug, (await loadEngineSvg(slug)) || ''])
+  )
+  presetSvgs.value = Object.fromEntries(entries)
+}
+
+const presetOpen = ref(false)
+const presetQuery = ref('')
+const presetPos = ref({ left: 0, top: 0 })
+const triggerRef = ref(null)
+const popRef = ref(null)
+const POP_GAP = 8
+const POP_MARGIN = 8
+const POP_WIDTH = 336
+
+/** 搜索：名称/拼音 slug 双通道，大小写不敏感 */
+const filteredPresets = computed(() => {
+  const q = presetQuery.value.trim().toLowerCase()
+  if (!q) return SITE_ICON_PRESETS
+  return SITE_ICON_PRESETS.filter(
+    (p) => p.name.toLowerCase().includes(q) || p.slug.includes(q)
+  )
+})
+
+/** 悬浮层定位（触发器 = 图标库按钮） */
+async function openPresets() {
+  presetOpen.value = true
+  loadPresets()
+  await nextTick()
+  computePopPosition()
+}
+function closePresets() {
+  presetOpen.value = false
+  presetQuery.value = ''
+}
+function togglePresets() {
+  if (presetOpen.value) closePresets()
+  else openPresets()
+}
+
+function computePopPosition() {
+  const el = triggerRef.value
+  const pop = popRef.value
+  if (!el) return
+  const r = el.getBoundingClientRect()
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const mh = pop ? pop.getBoundingClientRect().height || 320 : 320
+  let left = r.left
+  if (left + POP_WIDTH > vw - POP_MARGIN) left = r.right - POP_WIDTH
+  if (left + POP_WIDTH > vw - POP_MARGIN) left = vw - POP_WIDTH - POP_MARGIN
+  if (left < POP_MARGIN) left = POP_MARGIN
+  let top = r.bottom + POP_GAP
+  if (top + mh > vh - POP_MARGIN) top = r.top - mh - POP_GAP
+  if (top < POP_MARGIN) top = POP_MARGIN
+  presetPos.value = { left, top }
+}
+
+/** 悬浮层内勾选：写入即关闭 */
+function pickPreset(slug) {
+  form.value.icon = `${THESVG_PREFIX}${slug}`
+  closePresets()
+}
+function isPresetSelected(slug) {
+  return form.value.icon === `${THESVG_PREFIX}${slug}`
+}
+
+function onPresetDocDown(e) {
+  if (!presetOpen.value) return
+  if (popRef.value?.contains(e.target)) return
+  if (triggerRef.value?.contains(e.target)) return
+  closePresets()
+}
+onMounted(() => {
+  document.addEventListener('mousedown', onPresetDocDown)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('mousedown', onPresetDocDown)
+})
+useEscapeClose(presetOpen, closePresets)
+watch(
+  () => props.open,
+  (v) => {
+    if (!v) closePresets()
+  }
+)
+
+watch(
+  () => props.open,
+  (val) => {
+    if (val) reset()
+  }
+)
+
+/**
+ * 自动配图：失焦时仅图标为空才补（不覆盖库勾选/手动输入）；
+ * 点"自动"按钮强制重抓
+ */
+function autoIcon(force = false) {
+  if (!force && form.value.icon.trim()) return
+  let domain = form.value.url.trim()
+  if (!domain) return
+  if (!/^https?:\/\//i.test(domain)) domain = 'https://' + domain
+  try {
+    form.value.icon = FAVICON_API.pageIcon(domain)
+  } catch {
+    errorMsg.value = $t('siteEditor.invalidUrl')
+  }
+}
+
+function validateUrl(value) {
+  if (!/^https?:\/\//i.test(value)) value = 'https://' + value
+  try {
+    new URL(value)
+    return value
+  } catch {
+    return null
+  }
+}
+
+function submitSite() {
+  const url = validateUrl(form.value.url.trim())
+  if (!url) {
+    errorMsg.value = $t('siteEditor.invalidUrlExample')
+    return
+  }
+  const name = form.value.name.trim() || url
+  emit('save', {
+    id: props.editing?.id,
+    name,
+    url,
+    icon: form.value.icon.trim() || '',
+  })
+}
+
+function addWidget(widget) {
+  // 内置工具类 widget：emit 给父组件写入站点(kind ∈ TOOL_KINDS)
+  if (widget.kind && TOOL_KINDS.includes(widget.kind)) {
+    emit('add-tool', widget.kind)
+    emit('close')
+    return
+  }
+  // 兜底提示（当前 WIDGETS 仅含内置工具,此分支不会触发,保留以备扩展）
+  message.success($t('siteEditor.widgetAdded', { name: wTitle(widget) }))
+}
+</script>
+
+<template>
+  <!-- 就地渲染（teleport=false，还原迁移前行为）；内嵌的预览弹窗自身 Teleport 到 body -->
+  <BaseDialog
+    :open="open"
+    :title="editing && activeTab === 'site' ? $t('siteEditor.editTitle') : $t('siteEditor.addTitle')"
+    height="600px"
+    max-height="90vh"
+    padding="22px 24px"
+    :z-index="100"
+    :teleport="false"
+    @close="emit('close')"
+  >
+      <div class="modal-body">
+        <!-- 左侧 tab（编辑模式仅隐藏"小组件"一项） -->
+        <nav class="tabs">
+          <button
+            v-for="tab in visibleTabs"
+            :key="tab.key"
+            :class="['tab', { active: activeTab === tab.key }]"
+            @click="activeTab = tab.key"
+          >
+            <component :is="tab.icon" size="16" aria-hidden="true" class="tab-ico" />
+            <span>{{ tab.label }}</span>
+          </button>
+        </nav>
+
+        <!-- 右侧内容 -->
+        <div class="content">
+          <!-- tab: 自定义站点（保留原表单） -->
+          <div v-if="activeTab === 'site'" class="panel">
+            <label class="field">
+              <span>{{ $t('siteEditor.name') }}</span>
+              <input v-model="form.name" type="text" :placeholder="$t('siteEditor.namePlaceholder')" />
+            </label>
+
+            <label class="field">
+              <span>{{ $t('siteEditor.url') }}</span>
+              <input
+                v-model="form.url"
+                type="text"
+                :placeholder="$t('siteEditor.urlPlaceholder')"
+                @blur="() => autoIcon(false)"
+              />
+            </label>
+
+            <label class="field">
+              <span>{{ $t('siteEditor.iconUrl') }}</span>
+              <div class="icon-row">
+                <input
+                  v-model="form.icon"
+                  type="text"
+                  :placeholder="$t('siteEditor.iconAutoPlaceholder')"
+                />
+                <button type="button" class="auto-btn" @click="autoIcon(true)">{{ $t('siteEditor.auto') }}</button>
+                <button
+                  ref="triggerRef"
+                  type="button"
+                  class="auto-btn lib-btn"
+                  :class="{ open: presetOpen }"
+                  v-tip="$t('siteEditor.iconPreset')"
+                  :aria-label="$t('siteEditor.iconPreset')"
+                  aria-haspopup="true"
+                  :aria-expanded="presetOpen"
+                  @click="togglePresets"
+                >{{ $t('siteEditor.iconPreset') }}</button>
+              </div>
+            </label>
+
+            <Teleport to="body">
+              <Transition name="menu-pop">
+                <div
+                  v-if="presetOpen"
+                  ref="popRef"
+                  class="icon-pop glass"
+                  :style="{ left: presetPos.left + 'px', top: presetPos.top + 'px' }"
+                  @click.stop
+                >
+                  <div class="pop-search">
+                    <RiSearchLine size="15" class="pop-search-ico" aria-hidden="true" />
+                    <input
+                      v-model="presetQuery"
+                      class="pop-search-input"
+                      :placeholder="$t('siteEditor.iconSearch')"
+                    />
+                  </div>
+                  <div v-if="filteredPresets.length" class="pop-grid">
+                    <button
+                      v-for="p in filteredPresets"
+                      :key="p.slug"
+                      type="button"
+                      :class="['preset-opt', { active: isPresetSelected(p.slug) }]"
+                      :title="p.name"
+                      :aria-label="p.name"
+                      @click="pickPreset(p.slug)"
+                    >
+                      <span
+                        v-if="presetSvgs[p.slug]"
+                        class="preset-svg"
+                        v-html="presetSvgs[p.slug]"
+                      />
+                      <span v-else class="preset-fallback">{{ p.name.slice(0, 1) }}</span>
+                    </button>
+                  </div>
+                  <div v-else class="pop-empty">{{ $t('siteEditor.iconEmpty') }}</div>
+                </div>
+              </Transition>
+            </Teleport>
+
+            <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
+
+            <div class="actions">
+              <button type="button" class="btn ghost" @click="emit('close')">{{ $t('siteEditor.cancel') }}</button>
+              <button type="button" class="btn primary" @click="submitSite">
+                {{ editing ? $t('siteEditor.save') : $t('common.add') }}
+              </button>
+            </div>
+          </div>
+
+          <!-- tab: 小组件 -->
+          <div v-else class="panel">
+            <!-- 卡片网格 -->
+            <ul v-if="filteredWidgets.length" class="widget-grid">
+              <li v-for="w in filteredWidgets" :key="w.key" class="widget-card">
+                <!-- 卡片主体（emoji / 标题 / 描述）→ 点击唤起预览弹窗 -->
+                <button class="widget-body" type="button" @click="openWidgetPreview(w)">
+                  <div class="widget-head">
+                    <div class="widget-icon" aria-hidden="true">
+                      <span class="widget-emoji">{{ w.icon }}</span>
+                    </div>
+                    <div class="widget-info">
+                      <div class="widget-title">{{ wTitle(w) }}</div>
+                      <div class="widget-desc">{{ wDesc(w) }}</div>
+                    </div>
+                  </div>
+                </button>
+                <button class="widget-add" @click="addWidget(w)">
+                  <RiAddLine size="14" aria-hidden="true" />
+                  <span>{{ $t('common.add') }}</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+  </BaseDialog>
+
+  <!-- 小组件预览弹窗（公共）：点击 widget 卡片（除「添加」按钮）唤起 -->
+  <WidgetPreviewDialog
+    v-model:open="previewOpen"
+    :widget="previewWidget"
+  />
+</template>
+
+<style scoped lang="less">
+/* 左右结构 */
+.modal-body {
+  display: flex;
+  gap: 18px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 左侧 tabs */
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 132px;
+  flex-shrink: 0;
+  padding: 6px;
+  border-radius: @radius-card;
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid color-mix(in srgb, @accent 0.1%, transparent);
+  align-self: flex-start;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: @text-soft;
+  background: transparent;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: color-mix(in srgb, @accent 0.08%, transparent);
+    color: @text;
+  }
+
+  &.active {
+    background: @accent-soft;
+    color: @accent;
+    font-weight: 600;
+  }
+}
+
+.tab-ico {
+  flex-shrink: 0;
+}
+
+/* 右侧内容 */
+.content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  /* 重置全局 .content padding（避免被 App.vue 主内容区的
+     mobile padding-top: 80px 误命中造成顶部留白过大） */
+  padding: 0 !important;
+  padding-right: 4px !important;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-hint {
+  font-size: 12px;
+  color: @text-soft;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in srgb, @accent 0.06%, transparent);
+}
+
+/* 字段 */
+.field {
+  display: block;
+  margin-bottom: 14px;
+
+  span {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: @text-soft;
+  }
+
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid color-mix(in srgb, @accent 0.18%, transparent);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.6);
+    color: @text;
+    padding: 10px 14px;
+    font-size: 14px;
+    transition: border @tr, box-shadow @tr;
+
+    &:focus {
+      border-color: @accent;
+      box-shadow: 0 0 0 3px color-mix(in srgb, @accent 0.15%, transparent);
+    }
+  }
+}
+
+.icon-row {
+  display: flex;
+  gap: 8px;
+
+  input {
+    flex: 1;
+  }
+}
+
+.auto-btn {
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 13px;
+  color: @accent;
+  background: @accent-soft;
+  transition: background @tr;
+
+  &:hover {
+    background: color-mix(in srgb, @accent 0.22%, transparent);
+  }
+}
+
+/* 图标行：输入 + 自动 + 图标库 */
+.lib-btn {
+  flex-shrink: 0;
+
+  &.open {
+    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    color: #fff;
+  }
+}
+
+/* 悬浮面板：一排 8 个 */
+.icon-pop {
+  position: fixed;
+  width: 336px;
+  max-height: 330px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  z-index: 10001;
+}
+
+.pop-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(31, 41, 55, 0.05);
+  flex-shrink: 0;
+}
+
+.pop-search-ico {
+  color: @text-soft;
+  flex-shrink: 0;
+}
+
+.pop-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: @text;
+  font-size: 13px;
+}
+
+.pop-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  overflow-y: auto;
+  padding: 2px;
+  .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent));
+}
+
+.pop-empty {
+  text-align: center;
+  font-size: 12px;
+  color: @text-soft;
+  padding: 18px 8px;
+}
+
+.preset-opt {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  background: rgba(31, 41, 55, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  padding: 6px;
+  transition: background @tr, border-color @tr, transform @tr;
+
+  &:hover {
+    background: color-mix(in srgb, @accent 0.1%, transparent);
+    transform: scale(1.06);
+  }
+
+  &.active {
+    border-color: @accent;
+    background: color-mix(in srgb, @accent 0.12%, transparent);
+    box-shadow: 0 0 0 1px @accent;
+  }
+}
+
+.preset-svg {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  :deep(svg) {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.preset-fallback {
+  font-size: 13px;
+  font-weight: 600;
+  color: @text-soft;
+}
+
+.error {
+  color: #ef4444;
+  font-size: 13px;
+  margin: 8px 0 12px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn {
+  border-radius: @radius-pill;
+  padding: 9px 22px;
+  font-size: 14px;
+  transition: transform @tr, box-shadow @tr;
+
+  &.ghost {
+    background: rgba(31, 41, 55, 0.06);
+    color: @text-soft;
+
+    &:hover {
+      background: rgba(31, 41, 55, 0.12);
+    }
+  }
+
+  &.primary {
+    color: #fff;
+    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 22px color-mix(in srgb, @accent 0.4%, transparent);
+    }
+  }
+}
+
+/* 卡片网格：自适应（窄了2列，3列，4列……） */
+.widget-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.widget-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: @radius-card;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid color-mix(in srgb, @accent 0.18%, transparent);
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: color-mix(in srgb, @accent 0.5%, transparent);
+    background: rgba(255, 255, 255, 0.65);
+    box-shadow: 0 4px 14px color-mix(in srgb, @accent 0.12%, transparent);
+  }
+}
+
+/* 卡片主体（可点击唤起预览）:button 重置 + 继承卡片点击区域 */
+.widget-body {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+
+  &:focus-visible {
+    outline: 2px solid @accent;
+    outline-offset: 4px;
+    border-radius: 8px;
+  }
+}
+
+.widget-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.widget-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+}
+
+.widget-emoji {
+  font-size: 22px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.08));
+}
+
+.widget-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.widget-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: @text;
+  .ellipsis();
+}
+
+.widget-desc {
+  font-size: 12px;
+  color: @text-soft;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.widget-add {
+  align-self: flex-end;          /* 右对齐 */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: @radius-pill;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  transition: transform @tr, box-shadow @tr;
+  flex-shrink: 0;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px color-mix(in srgb, @accent 0.35%, transparent);
+  }
+}
+</style>

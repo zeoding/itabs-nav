@@ -1,0 +1,1402 @@
+/* ============================================================
+   移动端适配样式（iTab 风格）
+   - 断点：
+       sm  ≤ 480px  手机
+       md  ≤ 768px  平板/小屏
+   - 原则：
+       · 三档响应式
+       · 几何成比例缩小
+       · 图标保持正方形
+       · 字号 9-16px
+   - 注意：
+       · 组件 <style scoped lang="less"> 会加 [data-v-xxx] 属性
+       · 这里使用 !important 提升优先级覆盖组件 scoped 样式
+   ============================================================ */
+
+/* 移动端卡片尺寸：容器几何 + 图标 + 名称字号（6 种尺寸同构，仅参数不同） */
+.m-card-size(@w, @h, @pad, @gap, @icon, @radius, @fs) {
+  width: @w !important;
+  height: @h !important;
+  padding: @pad !important;
+  gap: @gap !important;
+
+  .site-icon {
+    width: @icon !important;
+    height: @icon !important;
+    border-radius: @radius !important;
+  }
+
+  .site-name {
+    font-size: @fs !important;
+  }
+}
+
+/* ============================================================
+   SiteCard 移动端尺寸
+   ============================================================ */
+
+/* 平板/小屏 (≤768px) */
+@media (max-width: 768px) {
+  .size-1x1 { .m-card-size(64px, 80px, 8px 4px 6px, 4px, 48px, 10px, 10px); }
+  .size-1x2 { .m-card-size(140px, 80px, 8px 6px 6px, 4px, 48px, 10px, 11px); }
+  .size-2x1 { .m-card-size(64px, 168px, 10px 4px, 6px, 48px, 10px, 11px); }
+  .size-2x2 { .m-card-size(140px, 168px, 14px 10px 10px, 8px, 48px, 10px, 12px); }
+  .size-2x4 { .m-card-size(292px, 168px, 14px 18px 10px, 10px, 48px, 10px, 13px); }
+  .size-4x2 { .m-card-size(140px, 332px, 20px 10px 14px, 10px, 48px, 10px, 13px); }
+}
+
+/* 手机端 (≤480px) */
+@media (max-width: 480px) {
+  .size-1x1 { .m-card-size(56px, 70px, 6px 2px 4px, 3px, 40px, 8px, 9px); }
+  .size-1x2 { .m-card-size(118px, 70px, 6px 4px 4px, 3px, 40px, 8px, 10px); }
+  .size-2x1 { .m-card-size(56px, 144px, 8px 2px, 4px, 40px, 8px, 10px); }
+  .size-2x2 { .m-card-size(118px, 144px, 10px 8px 8px, 6px, 40px, 8px, 11px); }
+  .size-2x4 { .m-card-size(244px, 144px, 10px 14px 8px, 8px, 40px, 8px, 12px); }
+  .size-4x2 { .m-card-size(118px, 288px, 16px 8px 12px, 8px, 40px, 8px, 12px); }
+
+  .site-letter {
+    font-size: 24px !important;
+  }
+
+  /* 工具卡 emoji 在移动端保持清晰可读 */
+  .site-letter.site-emoji {
+    font-size: 28px !important;
+  }
+}
+
+/* ============================================================
+   SiteGrid 移动端布局
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .panel-grid {
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .add-card {
+    width: 64px !important;
+    height: 80px !important;
+    padding: 8px 4px 6px !important;
+
+    .add-label {
+      font-size: 10px !important;
+    }
+  }
+
+  .skeleton {
+    width: 64px !important;
+    height: 64px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel-grid {
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)) !important;
+    gap: 6px !important;
+  }
+
+  .add-card {
+    width: 56px !important;
+    height: 70px !important;
+    padding: 6px 2px 4px !important;
+
+    .add-label {
+      font-size: 9px !important;
+    }
+  }
+
+  .skeleton {
+    width: 56px !important;
+    height: 56px !important;
+  }
+}
+
+/* ============================================================
+   WidgetsBar 移动端布局
+   - 桌面：4 列 (1.4fr 1fr 1fr 1fr)
+   - 平板：2x2 网格
+   - 手机：单列堆叠
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .widgets-bar {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-top: 16px !important;
+  }
+
+  .widget {
+    padding: 10px 14px !important;
+    min-height: 72px !important;          /* 减小高度 */
+    border-radius: 14px !important;
+  }
+
+  .widget-clock {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+  }
+
+  .clock-time {
+    font-size: 24px !important;
+
+    .seconds {
+      font-size: 14px !important;
+    }
+  }
+
+  .w-big {
+    font-size: 18px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .widgets-bar {
+    grid-template-columns: repeat(2, 1fr) !important;  /* 2 列布局，5 个卡片更整齐 */
+    gap: 8px !important;
+    margin-top: 12px !important;
+  }
+
+  .widget {
+    padding: 8px 12px !important;
+    min-height: 60px !important;       /* 减小高度 */
+  }
+
+  .widget-clock {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+
+  .clock-time {
+    font-size: 22px !important;
+  }
+
+  .w-big {
+    font-size: 16px !important;
+  }
+
+  .w-sub,
+  .w-title {
+    font-size: 11px !important;
+  }
+}
+
+/* ============================================================
+   弹窗（dialog）移动端适配
+   - 768px 以下：占满屏幕
+   - 480px 以下：进一步压缩 padding/字体
+   ============================================================ */
+
+@media (max-width: 768px) {
+  /* 通用 dialog 容器 */
+  .dialog {
+    width: 100vw !important;
+    max-height: 100vh !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    padding: 14px 16px !important;
+    overflow: hidden !important;     /* dialog 不滚动 */
+    display: flex !important;        /* flex column 让 weather-body 占据剩余空间 */
+    flex-direction: column !important;
+  }
+
+  .modal-mask {
+    padding: 0 !important;
+    align-items: stretch !important;
+  }
+
+  .dialog-header {
+    flex-shrink: 0 !important;
+    /* 取消 sticky，固定在 dialog 顶部（dialog 不滚动） */
+    padding: 4px 8px 8px !important;
+    margin-bottom: 10px !important;
+
+    h3 {
+      font-size: 16px !important;
+    }
+  }
+
+  .fullscreen-btn,
+  .close-btn {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 18px !important;
+  }
+
+  /* 弹窗输入框 */
+  .city-row {
+    flex-shrink: 0 !important;
+    /* 取消 sticky，固定在 dialog 顶部 */
+    padding: 6px 6px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .w-sel-btn {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+
+  .refresh-btn {
+    padding: 0 14px !important;
+    font-size: 13px !important;
+  }
+
+  .locate-btn,
+  .reset-btn {
+    width: 38px !important;
+    font-size: 13px !important;
+  }
+
+  /* 天气弹窗 - 改为单列，weather-body 内部滚动 */
+  .weather-body {
+    grid-template-columns: 1fr !important;
+    display: block !important;
+    gap: 14px !important;
+    flex: 1 1 auto !important;        /* 占据剩余空间 */
+    min-height: 0 !important;          /* 关键：允许 flex 子元素收缩 */
+    overflow-y: auto !important;       /* 关键：自身可滚动 */
+    overflow-x: hidden !important;
+    padding-right: 4px !important;     /* 给滚动条让位 */
+
+    /* 各 section 自身增加底部 margin 形成间隔 */
+    .now,
+    .hourly,
+    .detail-grid,
+    .astro,
+    .forecast,
+    .life {
+      margin-bottom: 14px !important;
+    }
+  }
+
+  /* 关键：用 contents 让 left/right-pane 容器"消失"，
+     其子元素直接参与父布局，避免嵌套 flex/grid 冲突 */
+  .left-pane,
+  .right-pane {
+    display: contents !important;
+  }
+
+  .now {
+    padding: 10px 12px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .now-icon {
+    font-size: 42px !important;
+  }
+
+  .now-temp {
+    font-size: 34px !important;
+  }
+
+  .now-desc {
+    font-size: 12px !important;
+  }
+
+  .now-feel {
+    font-size: 10px !important;
+  }
+
+  .now-loc,
+  .now-time {
+    font-size: 10px !important;
+  }
+
+  .hourly {
+    padding: 8px 10px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .temp-line {
+    height: 36px !important;
+  }
+
+  .hourly-list {
+    gap: 2px !important;
+  }
+
+  .hl-item {
+    min-width: 30px !important;
+    padding: 3px 0 !important;
+  }
+
+  .hl-time {
+    font-size: 8px !important;
+  }
+
+  .hl-icon {
+    font-size: 12px !important;
+  }
+
+  .hl-temp {
+    font-size: 10px !important;
+  }
+
+  .hl-rain {
+    font-size: 8px !important;
+  }
+
+  /* 详细指标 - 4 列（保持） */
+  .detail-grid {
+    gap: 5px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .dg-item {
+    padding: 5px 3px !important;
+  }
+
+  .dg-icon {
+    font-size: 13px !important;
+  }
+
+  .dg-label {
+    font-size: 9px !important;
+  }
+
+  .dg-value {
+    font-size: 11px !important;
+
+    &.small {
+      font-size: 10px !important;
+    }
+  }
+
+  .unit {
+    font-size: 8px !important;
+  }
+
+  /* 天文 */
+  .astro {
+    padding: 8px 10px !important;
+    gap: 6px 10px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .astro-icon {
+    font-size: 16px !important;
+  }
+
+  .astro-label {
+    font-size: 9px !important;
+  }
+
+  .astro-value {
+    font-size: 11px !important;
+  }
+
+  .moon-pct {
+    font-size: 9px !important;
+  }
+
+  /* 7 天预报 */
+  .forecast {
+    flex-shrink: 0 !important;
+  }
+
+  .forecast-title,
+  .life-title {
+    font-size: 11px !important;
+    margin-bottom: 5px !important;
+  }
+
+  .forecast-list {
+    gap: 3px !important;
+  }
+
+  .forecast-day {
+    padding: 6px 2px !important;
+  }
+
+  .fd-label {
+    font-size: 8px !important;
+  }
+
+  .fd-icon {
+    font-size: 16px !important;
+  }
+
+  .fd-temp {
+    font-size: 9px !important;
+    gap: 2px !important;
+  }
+
+  /* 生活指数 */
+  .life {
+    flex-shrink: 0 !important;
+  }
+
+  .life-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 5px !important;
+  }
+
+  .lg-item {
+    padding: 6px 4px !important;
+  }
+
+  .lg-icon {
+    font-size: 16px !important;
+  }
+
+  .lg-label {
+    font-size: 9px !important;
+  }
+
+  .lg-value {
+    font-size: 10px !important;
+  }
+
+  .city-name {
+    font-size: 10px !important;
+    margin-top: 4px !important;
+  }
+
+  /* ============================================================
+     日历弹窗移动端适配（≤768px）
+     - 左右两栏 → 上下两栏，左侧日历 + 右侧详情
+     - 整体可滚动
+     ============================================================ */
+  .cal-root {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  /* dialog-body 改为单列块级容器，自身可滚动 */
+  .dialog-body {
+    display: block !important;
+    grid-template-columns: 1fr !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-right: 4px !important;
+
+    /* 各 section 自身加底部 margin 形成间隔（参考 weather-body 模式）
+       注意：gap 在 display: block 下无效，必须用 margin */
+    .cal-toolbar,
+    .weekdays,
+    .days,
+    .info-card,
+    .yiji,
+    .almanac {
+      margin-bottom: 14px !important;
+    }
+
+    /* 最后一个 section 不留底部空白 */
+    .almanac {
+      margin-bottom: 0 !important;
+    }
+  }
+
+  /* 让 left/right pane 容器"消失"，子元素直接参与父布局（参考 weather 模式） */
+  .left-pane,
+  .right-pane {
+    display: contents !important;
+  }
+
+  /* 工具栏：紧凑 */
+  .cal-toolbar {
+    gap: 4px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .nav-btn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 16px !important;
+  }
+
+  .today-btn {
+    padding: 5px 10px !important;
+    font-size: 11px !important;
+  }
+
+  .month-label {
+    font-size: 14px !important;
+    gap: 4px !important;
+  }
+
+  .sel-btn {
+    padding: 4px 8px !important;
+    font-size: 14px !important;
+  }
+
+  /* 日期格子：缩小高度（窄屏高度会过紧） */
+  .days {
+    grid-auto-rows: minmax(56px, 1fr) !important;
+    margin-bottom: 0 !important;
+  }
+
+  .wd {
+    font-size: 10px !important;
+    padding: 2px 0 !important;
+  }
+
+  .day {
+    padding: 1px 0 !important;
+    gap: 1px !important;
+  }
+
+  .day-num {
+    font-size: 11px !important;
+  }
+
+  /* today 圆形背景：窄屏下微缩 */
+  .day.today .day-num {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .cell-label {
+    font-size: 8px !important;
+  }
+
+  /* 右侧详情卡片：缩 padding */
+  .info-card,
+  .yiji,
+  .almanac {
+    padding: 10px 12px !important;
+    border-radius: 12px !important;
+  }
+
+  .big-date {
+    min-width: 60px !important;
+    height: 60px !important;
+    padding: 0 10px !important;
+    font-size: 36px !important;
+    margin-bottom: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .info-lunar,
+  .sub-date {
+    font-size: 11px !important;
+  }
+
+  .yj-label {
+    font-size: 11px !important;
+  }
+
+  .yj-list li {
+    font-size: 10px !important;
+  }
+
+  .ar-label {
+    font-size: 10px !important;
+  }
+
+  .ar-value {
+    font-size: 12px !important;
+  }
+
+  .xiu-song,
+  .pengzu {
+    font-size: 10px !important;
+  }
+
+  /* ============================================================
+     热门弹窗移动端适配（≤768px）
+     - tab-bar 允许换行 + 刷新按钮下沉
+     - 列表项 hit-area 加大
+     ============================================================ */
+  .hot-root {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  /* tab 允许换行，刷新时间/按钮换到第二行 */
+  .tab-bar {
+    flex-wrap: wrap !important;
+    row-gap: 6px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .tab-btn {
+    padding: 5px 12px !important;
+    font-size: 12px !important;
+  }
+
+  .updated {
+    order: 99 !important;          /* 时间/缓存提示换到下一行 */
+    width: 100% !important;
+    font-size: 10px !important;
+    margin-left: 0 !important;
+    flex-wrap: wrap !important;
+  }
+
+  .refresh-btn {
+    padding: 5px 10px !important;
+    font-size: 11px !important;
+  }
+
+  /* 列表项加大触控区 */
+  .hot-list {
+    padding-right: 2px !important;
+  }
+
+  .hot-item {
+    padding: 10px 10px !important;
+    margin-bottom: 4px !important;
+    gap: 8px !important;
+  }
+
+  .rank {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 11px !important;
+  }
+
+  .title {
+    font-size: 12px !important;
+  }
+
+  .hot {
+    font-size: 10px !important;
+  }
+
+  /* ============================================================
+     添加/编辑站点弹窗（SiteEditor）移动端适配
+     - 左侧 tabs（132px 宽）→ 顶部水平 tab
+     - 内容区改单列
+     ============================================================ */
+  .modal-body {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  /* tabs 占满宽度，水平排列，允许横向滚动（窄屏选项多时） */
+  .modal-body > .tabs {
+    width: 100% !important;
+    flex-direction: row !important;
+    align-self: stretch !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 4px !important;
+    gap: 4px !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+
+    &::-webkit-scrollbar {
+      display: none !important;
+    }
+  }
+
+  /* 单个 tab：紧凑 */
+  .modal-body > .tabs .tab {
+    flex-shrink: 0 !important;
+    padding: 7px 12px !important;
+    font-size: 12px !important;
+    gap: 6px !important;
+    white-space: nowrap !important;
+  }
+
+  /* 内容区：自身滚动，去掉右侧滚动条占位 */
+  .modal-body > .content {
+    padding-right: 0 !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  /* ============================================================
+     设置弹窗（SettingsPanel）移动端适配
+     - 抽屉全屏化
+     - 左侧 sidebar 改成顶部：sidebar-header 在上、tabs 在下水平排列
+     - 隐藏 tab-pill 滑动指示条，用 tab-btn.active 自己的高亮代替
+     ============================================================ */
+  .drawer {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    flex-direction: column !important;
+    border-radius: 0 !important;
+  }
+
+  /* sidebar 改为顶栏 */
+  .sidebar {
+    width: 100% !important;
+    flex-direction: column !important;
+    border-right: none !important;
+    border-bottom: 1px solid color-mix(in srgb, @accent 0.12%, transparent) !important;
+    flex-shrink: 0 !important;
+  }
+
+  .sidebar-header {
+    padding: 12px 16px 10px !important;
+  }
+
+  .sidebar-header h3 {
+    font-size: 16px !important;
+  }
+
+  /* tabs 改水平排列 */
+  .tabs {
+    flex-direction: row !important;
+    gap: 4px !important;
+    padding: 6px 12px 10px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+
+    &::-webkit-scrollbar {
+      display: none !important;
+    }
+  }
+
+  .tab-btn {
+    flex-shrink: 0 !important;
+    padding: 7px 14px !important;
+    font-size: 12px !important;
+    text-align: center !important;
+    border-radius: 8px !important;
+    white-space: nowrap !important;
+  }
+
+  /* 窄屏下 pill 隐藏，用 tab-btn 自己的高亮代替 */
+  .tab-pill {
+    display: none !important;
+  }
+
+  .tab-btn.active {
+    background: color-mix(in srgb, @accent 0.18%, transparent) !important;
+    color: @accent !important;
+    font-weight: 600 !important;
+  }
+
+  /* 内容区 */
+  .drawer-body {
+    padding: 14px 16px !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  /* ============================================================
+     Sidebar「添加/编辑面板」弹窗（基于 BaseDialog）移动端
+     - 沿用 BaseDialog 默认全屏页形态（与其它 BaseDialog 一致）
+     ============================================================ */
+  .add-dialog-body {
+    gap: 12px !important;
+  }
+
+  .add-dialog-body .add-hint {
+    font-size: 11px !important;
+  }
+
+  .add-dialog-body .icon-opt {
+    height: 32px !important;
+  }
+
+  .add-dialog-body .text-input {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+
+  .add-dialog-body .btn-cancel,
+  .add-dialog-body .btn-ok {
+    height: 34px !important;
+    font-size: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .dialog {
+    padding: 10px 12px !important;
+  }
+
+  .dialog-header {
+    padding: 2px 0 6px !important;
+    margin-bottom: 8px !important;
+
+    h3 {
+      font-size: 15px !important;
+    }
+  }
+
+  .fullscreen-btn,
+  .close-btn {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 16px !important;
+  }
+
+  .city-row {
+    padding: 4px 6px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .w-sel-btn {
+    padding: 7px 10px !important;
+    font-size: 12px !important;
+  }
+
+  .locate-btn,
+  .reset-btn {
+    width: 34px !important;
+    font-size: 12px !important;
+  }
+
+  /* 天气弹窗 */
+  .weather-body {
+    gap: 10px !important;
+
+    .now,
+    .hourly,
+    .detail-grid,
+    .astro,
+    .forecast,
+    .life {
+      margin-bottom: 10px !important;
+    }
+  }
+
+  .left-pane,
+  .right-pane {
+    display: contents !important;  /* 480px 也保持容器消失 */
+  }
+
+  .now {
+    padding: 8px 10px !important;
+    border-radius: 12px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+  }
+
+  .now-left {
+    gap: 10px !important;
+  }
+
+  .now-icon {
+    font-size: 36px !important;
+  }
+
+  .now-temp {
+    font-size: 30px !important;
+  }
+
+  .now-hilo {
+    font-size: 11px !important;
+  }
+
+  .now-right {
+    flex-direction: row !important;
+    gap: 8px !important;
+    text-align: left !important;
+  }
+
+  .hourly {
+    padding: 6px 8px !important;
+  }
+
+  .head-title {
+    font-size: 10px !important;
+  }
+
+  .head-range {
+    font-size: 9px !important;
+  }
+
+  .temp-line {
+    height: 30px !important;
+  }
+
+  .hl-item {
+    min-width: 26px !important;
+    padding: 2px 0 !important;
+  }
+
+  .hl-time {
+    font-size: 7px !important;
+  }
+
+  .hl-icon {
+    font-size: 11px !important;
+  }
+
+  .hl-temp {
+    font-size: 9px !important;
+  }
+
+  /* 详细指标 */
+  .detail-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 3px !important;
+  }
+
+  .dg-item {
+    padding: 4px 2px !important;
+  }
+
+  .dg-icon {
+    font-size: 11px !important;
+  }
+
+  .dg-label {
+    font-size: 8px !important;
+  }
+
+  .dg-value {
+    font-size: 10px !important;
+
+    &.small {
+      font-size: 9px !important;
+    }
+  }
+
+  /* 天文单列 */
+  .astro {
+    grid-template-columns: 1fr 1fr !important;
+    padding: 6px 8px !important;
+    gap: 4px 8px !important;
+  }
+
+  .astro-item {
+    gap: 5px !important;
+  }
+
+  .astro-icon {
+    font-size: 14px !important;
+  }
+
+  .astro-value {
+    font-size: 10px !important;
+  }
+
+  /* 7 天预报 - 7 列保持（缩小） */
+  .forecast-list {
+    grid-template-columns: repeat(7, 1fr) !important;
+    gap: 2px !important;
+  }
+
+  .forecast-day {
+    padding: 5px 1px !important;
+  }
+
+  .fd-label {
+    font-size: 7px !important;
+  }
+
+  .fd-icon {
+    font-size: 14px !important;
+  }
+
+  .fd-temp {
+    font-size: 8px !important;
+
+    .bar {
+      min-width: 2px !important;
+      max-width: 6px !important;
+    }
+  }
+
+  /* 生活指数 */
+  .life-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 4px !important;
+  }
+
+  .lg-item {
+    padding: 5px 3px !important;
+  }
+
+  .lg-icon {
+    font-size: 14px !important;
+  }
+
+  .lg-label {
+    font-size: 8px !important;
+  }
+
+  .lg-value {
+    font-size: 9px !important;
+  }
+
+  /* 待办弹窗 - 列表 */
+  .todo-list {
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+    max-height: 70vh !important;
+  }
+
+  .todo-item {
+    padding: 8px !important;
+    font-size: 12px !important;
+  }
+
+  /* ============================================================
+     日历弹窗（≤480px）：进一步压缩
+     ============================================================ */
+  .dialog-body {
+    .cal-toolbar,
+    .weekdays,
+    .days,
+    .info-card,
+    .yiji,
+    .almanac {
+      margin-bottom: 10px !important;
+    }
+  }
+
+  .cal-toolbar {
+    gap: 3px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .nav-btn {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .today-btn {
+    padding: 4px 8px !important;
+    font-size: 10px !important;
+  }
+
+  .month-label,
+  .sel-btn {
+    font-size: 13px !important;
+  }
+
+  .days {
+    grid-auto-rows: minmax(48px, 1fr) !important;
+    gap: 3px !important;
+  }
+
+  .wd {
+    font-size: 9px !important;
+  }
+
+  .day-num {
+    font-size: 10px !important;
+  }
+
+  /* today 圆形背景：手机下进一步微缩 */
+  .day.today .day-num {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  .cell-label {
+    font-size: 7px !important;
+  }
+
+  .info-card,
+  .yiji,
+  .almanac {
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+  }
+
+  .big-date {
+    min-width: 50px !important;
+    height: 50px !important;
+    font-size: 28px !important;
+    margin-bottom: 8px !important;
+    border-radius: 10px !important;
+  }
+
+  /* ============================================================
+     热门弹窗（≤480px）：进一步压缩
+     ============================================================ */
+  .tab-btn {
+    padding: 4px 10px !important;
+    font-size: 11px !important;
+  }
+
+  .refresh-btn {
+    padding: 4px 8px !important;
+    font-size: 10px !important;
+  }
+
+  .updated {
+    font-size: 9px !important;
+  }
+
+  .hot-item {
+    padding: 8px 8px !important;
+    gap: 6px !important;
+  }
+
+  .rank {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+  }
+
+  .title {
+    font-size: 11px !important;
+  }
+
+  .hot {
+    font-size: 9px !important;
+  }
+
+  /* ============================================================
+     添加/编辑站点弹窗（SiteEditor）≤480px
+     ============================================================ */
+  .modal-body {
+    gap: 8px !important;
+  }
+
+  .modal-body > .tabs {
+    padding: 3px !important;
+  }
+
+  .modal-body > .tabs .tab {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+
+  /* ============================================================
+     设置弹窗（SettingsPanel）≤480px
+     ============================================================ */
+  .sidebar-header {
+    padding: 10px 12px 8px !important;
+  }
+
+  .sidebar-header h3 {
+    font-size: 15px !important;
+  }
+
+  .tabs {
+    padding: 4px 10px 8px !important;
+  }
+
+  .drawer-body {
+    padding: 12px 14px !important;
+  }
+}
+
+/* ============================================================
+   侧边导航栏移动端适配
+   - ≤ 900px：直接转为底部水平 Tab Bar
+   ============================================================ */
+
+/* ≤ 900px：底部水平 Tab Bar（最多 5 个，超出可滑动） */
+@media (max-width: 900px) {
+  .sidebar.nav {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    transform: none !important;
+    flex-direction: row !important;
+    justify-content: flex-start !important;  /* 左对齐，超出滚动 */
+    align-items: center !important;
+    width: 100vw !important;
+    max-width: 100% !important;
+    height: 56px !important;
+    max-height: 56px !important;
+    padding: 6px 6px !important;
+    border-radius: 16px 16px 0 0 !important;
+    gap: 4px !important;                    /* 减小间距，让 6 个能放下一屏 */
+    box-shadow: 0 -4px 20px rgba(31, 41, 55, 0.12) !important;
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.6) !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    overflow-x: auto !important;             /* 横向滚动 */
+    overflow-y: hidden !important;
+    z-index: 100 !important;
+    /* 隐藏滚动条但保留滚动 */
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    /* 启用平滑滚动（iOS 关键） */
+    -webkit-overflow-scrolling: touch !important;
+
+    &::-webkit-scrollbar {
+      display: none !important;
+    }
+
+    /* 收起状态：底部导航下滑隐藏 */
+    &.is-collapsed {
+      transform: translateY(140%) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+  }
+
+  .brand {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 18px !important;
+    border-radius: 10px !important;
+    margin-bottom: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .rail-btn {
+    width: 40px !important;              /* 保持 40px，让 6 个能放下一屏 */
+    height: 40px !important;
+    font-size: 16px !important;
+    border-radius: 10px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .rail-icon {
+    font-size: 16px !important;
+  }
+
+  .rail-add {
+    font-size: 18px !important;
+  }
+
+  /* 为底部导航让出空间（主内容增加底部 padding） */
+  .content {
+    padding-bottom: 72px !important;
+  }
+
+  .app.minimalist .content {
+    padding-bottom: 72px !important;
+  }
+
+  /* 展开悬浮钮：移动端移到左下角底部导航上方 */
+  .sidebar-expand {
+    left: 8px !important;
+    right: auto !important;
+    top: auto !important;
+    bottom: 64px !important;
+    transform: none !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.6) !important;
+
+    &:hover {
+      width: 36px !important;
+    }
+  }
+}
+
+/* ============================================================
+   App 主内容移动端 padding 调整
+   - 顶部留更多空间，避免首屏内容太挤
+   ============================================================ */
+
+@media (max-width: 900px) {
+  .content {
+    padding: 80px 20px 88px 20px !important;   /* 顶部减小但 bottom 加 16 让 nav 不挡 */
+  }
+
+  .app.minimalist .content {
+    padding: 0 20px 88px 20px !important;
+  }
+
+  /* 搜索栏下方的"非必要区域"加间距 */
+  .below-search {
+    padding-top: 20px !important;
+  }
+
+  /* widgets 与 panel-grid 之间留空 */
+  .widgets-bar {
+    margin-bottom: 28px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 70px 16px 88px 16px !important;
+  }
+
+  .app.minimalist .content {
+    padding: 0 16px 88px 16px !important;
+  }
+
+  .below-search {
+    padding: 0 4px !important;
+    padding-top: 16px !important;
+  }
+
+  .widgets-bar {
+    margin-bottom: 24px !important;
+  }
+}
+
+/* ============================================================
+   移动端滚动条优化
+   - weather-body 内部滚动条：更细、半透明
+   - 全局滚动条：更细
+   ============================================================ */
+
+@media (max-width: 900px) {
+  /* weather-body 滚动条 */
+  .weather-body {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(99, 102, 241, 0.3) transparent !important;
+
+    &::-webkit-scrollbar {
+      width: 4px !important;
+      height: 4px !important;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent !important;
+      margin: 4px 0 !important;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg,
+        rgba(99, 102, 241, 0.35),
+        rgba(139, 92, 246, 0.35)) !important;
+      border-radius: 2px !important;
+      border: 1px solid transparent !important;
+      background-clip: padding-box !important;
+
+      &:hover {
+        background: linear-gradient(180deg,
+          rgba(99, 102, 241, 0.6),
+          rgba(139, 92, 246, 0.6)) !important;
+        background-clip: padding-box !important;
+      }
+    }
+
+    &::-webkit-scrollbar-corner {
+      background: transparent !important;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  /* 极窄屏：滚动条更细 */
+  .weather-body::-webkit-scrollbar {
+    width: 3px !important;
+  }
+
+  .weather-body::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.25) !important;
+    border: 1px solid transparent !important;
+    background-clip: padding-box !important;
+  }
+}
+
+/* 移动端全局滚动条（内容区、列表等） */
+@media (max-width: 900px) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+
+    &::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.3);
+      border-radius: 3px;
+
+      &:hover {
+        background: rgba(99, 102, 241, 0.5);
+      }
+    }
+  }
+}

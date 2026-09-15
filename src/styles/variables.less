@@ -1,0 +1,65 @@
+/**
+ * 全局 Less 变量 / 混入
+ * - 经 vite.config.js `css.preprocessorOptions.less.additionalData` 自动注入每个 Less 文件
+ * - 组件内直接使用，无需手动 @import
+ * - 注意：换肤仍由运行时 CSS 变量驱动，这里的变量只是别名 + 常用值收敛
+ */
+
+// ---- 主题色（别名，实际值来自 :root 的 CSS 变量，换肤依然生效） ----
+@text: var(--color-text);
+@text-soft: var(--color-text-soft);
+@accent: var(--color-accent);
+@accent-soft: var(--color-accent-soft);
+@tr: var(--transition);
+
+// ---- 圆角 ----
+@radius-dialog: 22px;
+@radius-card: 14px;
+@radius-pill: 999px;
+@radius-circle: 50%;
+
+// ---- 遮罩 ----
+@mask-bg: rgba(31, 41, 55, 0.5);
+@icon-bg: rgba(31, 41, 55, 0.06);
+@icon-bg-hover: rgba(31, 41, 55, 0.12);
+
+// ---- 圆形图标按钮（30px 全屏/关闭/刷新键同款） ----
+.circle-btn(@size: 30px) {
+  width: @size;
+  height: @size;
+  border-radius: @radius-circle;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  color: @text-soft;
+  background: @icon-bg;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: @icon-bg-hover;
+    color: @text;
+  }
+}
+
+// ---- 单行省略 ----
+.ellipsis() {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ---- 细滚动条 ----
+.thin-scrollbar(@thumb, @width: 4px) {
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    width: @width;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: @thumb;
+    border-radius: 2px;
+  }
+}

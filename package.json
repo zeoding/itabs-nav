@@ -1,0 +1,36 @@
+{
+  "name": "itabs-nav",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "类 iTab 的浏览器导航页（纯前端，数据存 IndexedDB）",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "license": "MIT",
+  "author": "itabs-nav contributors",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:zip": "npm run build && node scripts/zip.mjs",
+    "zip": "node scripts/zip.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@remixicon/vue": "^4.9.0",
+    "@thesvg/icons": "^2.1.11",
+    "axios": "^1.20.0",
+    "dexie": "^4.4.5",
+    "lunar-javascript": "^1.7.7",
+    "pinia": "^4.0.3",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/devtools-api": "^8.2.1",
+    "adm-zip": "^0.5.18",
+    "less": "^4.9.1",
+    "vite": "^8.2.2",
+    "vite-plugin-vue-devtools": "^8.2.1"
+  }
+}
