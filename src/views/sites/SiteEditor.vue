@@ -59,6 +59,7 @@ const WIDGETS = [
   { key: 'split-text', icon: '✂️', category: 'tool', kind: 'split-text' },
   { key: 'free-email', icon: '📫', category: 'tool', kind: 'free-email' },
   { key: 'wallpaper', icon: '🖼️', category: 'tool', kind: 'wallpaper' },
+  { key: 'week-report', icon: '📊', category: 'tool', kind: 'week-report' },
 ]
 
 /** 内置工具 widget 的字面量文案(暂不接入 i18n) */
@@ -74,6 +75,10 @@ const FALLBACK_WIDGET_TEXT = {
   'wallpaper': {
     title: '壁纸库',
     desc: 'Wallhaven 精选壁纸：搜索 / 预览 / 一键设为桌面壁纸',
+  },
+  'week-report': {
+    title: '周报统计',
+    desc: '上传周报 xlsx，按部门/变更类型统计并生成图表',
   },
 }
 

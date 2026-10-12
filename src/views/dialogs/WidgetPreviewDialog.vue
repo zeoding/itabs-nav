@@ -64,6 +64,19 @@ const WallpaperPreview = defineAsyncComponent({
   },
 })
 
+const WeekReportPreview = defineAsyncComponent({
+  loader: () => import('@/views/widgets/WeekReportPreview.vue'),
+  delay: 100,
+  loadingComponent: {
+    render() {
+      return h('div', { class: 'cp-loading-with-icon' }, [
+        h(RiLoader4Line, { size: 28, class: 'spin', 'aria-hidden': true }),
+        h('div', { class: 'cp-loading-text' }, $t('common.loading')),
+      ])
+    },
+  },
+})
+
 const props = defineProps({
   open: { type: Boolean, default: false },
   widget: { type: Object, default: null },
@@ -90,6 +103,11 @@ const FALLBACK_WIDGET_TEXT = {
   'wallpaper': {
     title: '壁纸库',
     desc: 'Wallhaven 精选壁纸：搜索 / 预览 / 一键设为桌面壁纸',
+    categoryKey: 'siteEditor.widgetCats.tool',
+  },
+  'week-report': {
+    title: '周报统计',
+    desc: '上传周报 xlsx，按部门/变更类型统计并生成图表',
     categoryKey: 'siteEditor.widgetCats.tool',
   },
 }
@@ -155,6 +173,7 @@ function minimize() {
               <SplitTextPreview v-if="widgetKey === 'split-text'" :key="widgetKey" />
               <EmailPreview v-else-if="widgetKey === 'free-email'" :key="widgetKey" />
               <WallpaperPreview v-else-if="widgetKey === 'wallpaper'" :key="widgetKey" />
+              <WeekReportPreview v-else-if="widgetKey === 'week-report'" :key="widgetKey" />
             </div>
           </div>
     <template #footer>

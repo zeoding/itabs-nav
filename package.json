@@ -22,9 +22,11 @@
     "@thesvg/icons": "^2.1.11",
     "axios": "^1.20.0",
     "dexie": "^4.4.5",
+    "echarts": "^6.1.0",
     "lunar-javascript": "^1.7.7",
     "pinia": "^4.0.3",
-    "vue": "^3.5.13"
+    "vue": "^3.5.13",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

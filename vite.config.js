@@ -46,8 +46,8 @@ export default defineConfig({
     sourcemap: false,
     // 关闭清空选项：让外部脚本可同步产物；如需每次重建可打开 emptyOutDir
     emptyOutDir: true,
-    // 提醒：分包粒度
-    chunkSizeWarningLimit: 500,
+    // 提醒：分包粒度（widget-libs 单块 ~900KB 为 echarts+xlsx 懒加载重依赖，已知可控）
+    chunkSizeWarningLimit: 1000,
     rolldownOptions: {
       output: {
         // 控制分包粒度（Vite 8 / Rolldown：manualChunks 已废弃，用 codeSplitting.groups 代替）：
@@ -77,6 +77,14 @@ export default defineConfig({
             {
               name: 'vendor-ui',
               test: /node_modules[\\/](lunar-javascript|@remixicon[\\/]vue)/,
+              priority: 20,
+            },
+            {
+              // 周报统计 widget 专用重依赖（echarts/xlsx）：
+              // 只被 WeekReportPreview 引用，独立分包保证只在打开该 widget 时下载，
+              // 且避免落进 vendor 兜底块（防止将来首屏依赖与其混包）
+              name: 'widget-libs',
+              test: /node_modules[\\/](echarts|xlsx)/,
               priority: 20,
             },
             {

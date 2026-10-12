@@ -327,6 +327,11 @@ const TOOL_PRESETS = {
     url: 'action:wallpaper',
     icon: '🖼️',
   },
+  'week-report': {
+    name: '周报统计',
+    url: 'action:week-report',
+    icon: '📊',
+  },
 }
 
 async function handleAddTool(tool) {
