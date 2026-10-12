@@ -444,6 +444,9 @@ export default {
     todo: '待办',
     calendar: '日历',
     hot: '热门',
+    splitText: '文本分割',
+    freeEmail: '免费邮箱',
+    wallpaper: '壁纸库',
   },
 
   // 编辑模式

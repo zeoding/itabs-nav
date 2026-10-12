@@ -31,7 +31,7 @@ function isValidWrap(wrap) {
 
 /** 读 localStorage 遗留并迁入 IDB（一次性，命中后清理遗留） */
 async function migrateLegacy(key) {
-  let raw = null
+  let raw
   try {
     raw = localStorage.getItem(key)
   } catch {

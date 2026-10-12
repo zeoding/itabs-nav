@@ -11,6 +11,13 @@ import * as db from '@/db'
 
 let seeded = false
 
+/**
+ * 拖拽重排当前面板时写入的 order 基数。
+ * 展示按面板过滤、只依赖面板内相对顺序，基数本身不影响显示；
+ * 取 1000 只是让重排过的面板与其他未重排面板的小 order 值（1..n）拉开距离，便于排查。
+ */
+const PANEL_MOVE_ORDER_BASE = 1000
+
 export const useSitesStore = defineStore('sites', () => {
   const sites = ref([]) // 当前面板的站点
   const allSites = ref([]) // 全部站点（用于计数等）
@@ -112,7 +119,7 @@ export const useSitesStore = defineStore('sites', () => {
     )
     const merged = [
       ...otherList,
-      ...currentList.map((s, i) => ({ ...s, order: 1000 + i })),
+      ...currentList.map((s, i) => ({ ...s, order: PANEL_MOVE_ORDER_BASE + i })),
     ]
     await db.reorderSites(merged)
     await load()

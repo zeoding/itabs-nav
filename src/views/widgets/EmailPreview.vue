@@ -53,13 +53,6 @@ function randomPassword() {
   return Array.from(arr, (n) => chars[n % chars.length]).join('')
 }
 
-function pickDomain(domains) {
-  // 优先选 isActive && isPrivate=false 的域名
-  const active = (domains['hydra:member'] || domains.member || [])
-    .filter((d) => d.isActive && !d.isPrivate)
-  return active[0]?.domain || null
-}
-
 function isTokenValid(acc) {
   if (!acc?.tokenExpiresAt) return false
   // 提前 60s 视为过期，避免边界竞态

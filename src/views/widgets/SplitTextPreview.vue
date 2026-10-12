@@ -87,7 +87,7 @@ const outputCount = computed(() => {
 // === 操作 ===
 async function handleCopy() {
   const text = outValue.value
-  let ok = false
+  let ok
   try {
     if (navigator.clipboard?.writeText) {
       await navigator.clipboard.writeText(text)

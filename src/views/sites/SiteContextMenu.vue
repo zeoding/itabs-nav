@@ -3,7 +3,6 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { SITE_SIZES, isToolKind } from '@/db'
 import { RiEditLine, RiDeleteBinLine } from '@remixicon/vue'
-import { useConfirm } from '@/composables/useConfirm'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -31,7 +30,6 @@ const SIZE_LABELS = {
 
 const pos = ref({ left: 0, top: 0 })
 const menuRef = ref(null)
-const { confirm } = useConfirm()
 
 const GAP = 8 // 菜单与触发卡片之间的间距
 const MARGIN = 8 // 视口边距

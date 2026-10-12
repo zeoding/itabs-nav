@@ -17,7 +17,7 @@ import {
   RiCloseLine,
 } from '@remixicon/vue'
 
-const props = defineProps({
+defineProps({
   /** 被最小化的 widget：{ key, icon, ... } */
   widget: { type: Object, default: null },
   /** 任务栏上显示的窗口标题（父级传入本地化文案） */

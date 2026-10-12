@@ -63,7 +63,7 @@ import { useSitesStore } from '@/stores/sites'
 import { useSettingsStore } from '@/stores/settings'
 import { usePanelsStore } from '@/stores/panels'
 import { useUiStore } from '@/stores/ui'
-import { setLanguage } from '@/composables/useI18n'
+import { setLanguage, $t } from '@/composables/useI18n'
 import { storeToRefs } from 'pinia'
 import * as db from '@/db'
 import { TOOL_KINDS } from '@/db'
@@ -125,12 +125,15 @@ const previewOpen = computed({
 const taskbarVisible = computed(
   () => previewWidget.value !== null && previewMinimized.value
 )
-/** 任务栏窗口标题（与 WidgetPreviewDialog 内文案保持一致） */
+/** 任务栏窗口标题（与 WidgetPreviewDialog 内文案保持一致；走 i18n，随语言切换更新） */
+const TOOL_TITLE_KEYS = {
+  'split-text': 'widgets.splitText',
+  'free-email': 'widgets.freeEmail',
+  'wallpaper': 'widgets.wallpaper',
+}
 const previewTitle = computed(() => {
-  if (previewWidget.value?.key === 'split-text') return '文本分割'
-  if (previewWidget.value?.key === 'free-email') return '免费邮箱'
-  if (previewWidget.value?.key === 'wallpaper') return '壁纸库'
-  return previewWidget.value?.key || ''
+  const key = previewWidget.value?.key
+  return (key && TOOL_TITLE_KEYS[key]) ? $t(TOOL_TITLE_KEYS[key]) : key || ''
 })
 
 /** 精简模式：只保留搜索引擎 */
@@ -153,9 +156,8 @@ const anyDialogOpen = computed(() =>
 )
 
 function onMouseMove(e) {
-  // 检测鼠标是否在右上 140×100 区域  
+  // 检测鼠标是否在右上 140×100 区域
   const w = window.innerWidth
-  const h = window.innerHeight
   const inZone = e.clientX > w - 140 && e.clientY < 100
   if (inZone !== zoneHover.value) {
     zoneHover.value = inZone
@@ -188,7 +190,7 @@ function openAdd() {
 const panelDirection = ref('none')
 /** 面板列表：与 Sidebar 同源（panels store 单例），避免新鲜打包环境下只有 ['home'] */
 const panelsStore = usePanelsStore()
-const { customPanels, panelOrder } = storeToRefs(panelsStore)
+const { panelOrder } = storeToRefs(panelsStore)
 const { setCustomPanels, refreshPanels } = panelsStore
 
 /** Sidebar 增删改后即时同步（同页 storage 事件不触发，靠此事件补齐） */
@@ -413,7 +415,6 @@ async function handleRestored() {
     </div>
 
     <Sidebar
-      v-if="true"
       class="side-area"
       :class="{ hidden: minimalist }"
       :active="currentPanel"

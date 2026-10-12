@@ -7,7 +7,7 @@
  *  - getZodiac(date)            星座
  *  - getDayAlmanac(date)        今日宜/忌/值神/星宿等
  */
-import { Solar, Lunar } from 'lunar-javascript'
+import { Solar } from 'lunar-javascript'
 
 /** 获取某日期的所有节日，按类型分组 */
 export function getFestivals(date) {

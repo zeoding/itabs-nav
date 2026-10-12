@@ -430,6 +430,9 @@ export default {
     todo: 'Todos',
     calendar: 'Calendar',
     hot: 'Hot',
+    splitText: 'Split Text',
+    freeEmail: 'Temp Email',
+    wallpaper: 'Wallpapers',
   },
 
   editMode: {

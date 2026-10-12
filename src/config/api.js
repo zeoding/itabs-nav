@@ -96,8 +96,13 @@ export const WALLPAPER_API = {
  */
 export const WALLHAVEN_API = {
   base: 'https://wallhaven.cc/api/v1',
-  /** 搜索端点（调用方透传 params：q / categories / purity / sorting / order / page） */
+  /**
+   * 搜索端点（调用方透传 params：q / categories / purity / sorting / order / page）
+   * - 主源为 Netlify 反代：部分网络环境直连 wallhaven.cc 不通，由代理解决可用性
+   * - officialSearch：官方直连兜底，代理失效时降级重试（见 WallpaperPreview.load）
+   */
   search: () => 'https://delicate-sprite-b04369.netlify.app/api/wallhaven/search',
+  officialSearch: () => 'https://wallhaven.cc/api/v1/search',
   /** 默认查询参数（sfw + 全分类） */
   defaultParams: { categories: '111', purity: '100', order: 'desc' },
 }

@@ -5,7 +5,7 @@
  * - 支持全屏放大
  * - 数据源：vvhan API（带兜底）
  */
-import { ref, watch, onMounted } from 'vue'
+import { watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useHotStore, formatHot } from '@/stores/hot'
 import BaseDialog from '@/components/BaseDialog.vue'
@@ -13,6 +13,7 @@ import {
   RiAlertLine,
   RiSignalWifiErrorLine,
 } from '@remixicon/vue'
+import { openExternal } from '@/utils/openExternal'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -40,7 +41,8 @@ function forceRefresh() {
 
 function openUrl(url) {
   if (!url || url === '#') return
-  window.open(url, '_blank', 'noopener')
+  // 热榜条目链接来自第三方 API 响应，同样走协议白名单
+  openExternal(url)
 }
 
 function formatTime(d) {

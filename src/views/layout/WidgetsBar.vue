@@ -28,10 +28,6 @@ function tick() {
 const hhStr = computed(() => String(now.value.getHours()).padStart(2, '0'))
 const mmStr = computed(() => String(now.value.getMinutes()).padStart(2, '0'))
 const ssStr = computed(() => String(now.value.getSeconds()).padStart(2, '0'))
-// 兼容旧模板函数调用
-const hh = () => hhStr.value
-const mm = () => mmStr.value
-const ss = () => ssStr.value
 
 const greeting = () => {
   const h = now.value.getHours()

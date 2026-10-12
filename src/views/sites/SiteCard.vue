@@ -12,6 +12,7 @@
 import { computed, ref, watch, onMounted } from 'vue'
 import { isToolKind } from '@/db'
 import { loadEngineSvg, parseThesvgIcon } from '@/utils/thesvg'
+import { openExternal } from '@/utils/openExternal'
 
 const props = defineProps({
   site: { type: Object, required: true },
@@ -30,14 +31,6 @@ const emit = defineEmits([
   'exit-edit',
   'action',
 ])
-
-const domain = computed(() => {
-  try {
-    return new URL(props.site.url).hostname.replace(/^www\./, '')
-  } catch {
-    return props.site.url
-  }
-})
 
 const size = computed(() => props.site.size || '1x1')
 
@@ -115,8 +108,8 @@ function onCardClick() {
     emit('action', props.site)
     return
   }
-  // 普通模式：打开链接
-  window.open(props.site.url, '_blank', 'noopener')
+  // 普通模式：打开链接（走协议白名单，防备份导入注入 javascript: 等伪协议）
+  openExternal(props.site.url)
 }
 
 function onContextMenu(e) {

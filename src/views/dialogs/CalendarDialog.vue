@@ -27,7 +27,7 @@ import {
   hasFestival,
 } from '@/utils/lunar'
 
-const props = defineProps({
+defineProps({
   open: { type: Boolean, default: false },
 })
 const emit = defineEmits(['update:open'])
@@ -80,9 +80,6 @@ watch([year, month], ([y, m]) => {
   yearSel.value = y
   monthSel.value = m
 })
-function onYearMonthChange() {
-  cursor.value = new Date(yearSel.value, monthSel.value - 1, 1)
-}
 
 /** 自定义下拉状态 */
 const yearOpen = ref(false)

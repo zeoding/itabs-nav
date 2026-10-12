@@ -24,6 +24,7 @@ import http from '@/utils/http'
 import BaseDialog from '@/components/BaseDialog.vue'
 import { WALLHAVEN_API } from '@/config/api'
 import { getDaily, getAny, setDaily } from '@/utils/dailyCache'
+import { openExternal } from '@/utils/openExternal'
 import { $t } from '@/composables/useI18n'
 import { useMessage } from '@/composables/useMessage'
 import { useSettingsStore } from '@/stores/settings'
@@ -77,7 +78,6 @@ let setDoneTimer = 0
 const message = useMessage()
 const settingsStore = useSettingsStore()
 
-const categoryKey = computed(() => CATEGORIES.find((c) => c.value === categories.value)?.key || 'all')
 /** 灯箱显隐（BaseDialog 的 open 只认布尔） */
 const lightboxOpen = computed(() => !!lightbox.value)
 /** 缩放百分比（工具条展示） */
@@ -119,6 +119,19 @@ async function loadPrefs() {
   } catch { /* 无偏好则用默认 */ }
 }
 
+/**
+ * 搜索请求：Netlify 代理为主源（部分网络环境直连 wallhaven.cc 不通），
+ * 失败时降级官方直连兜底；两者都失败才抛给上层走「回退过期缓存」逻辑
+ */
+async function searchWallhaven(params) {
+  try {
+    return await http.get(WALLHAVEN_API.search(), { params })
+  } catch (e) {
+    console.warn('[wallpaper] 代理源失败，降级官方直连:', e?.message)
+    return http.get(WALLHAVEN_API.officialSearch(), { params })
+  }
+}
+
 /** 拉取壁纸列表（force=true 跳过当天缓存） */
 async function load(force = false) {
   loading.value = true
@@ -141,7 +154,7 @@ async function load(force = false) {
     const keyword = q.value.trim()
     if (keyword) params.q = keyword
     params.categories = categories.value
-    const json = await http.get(WALLHAVEN_API.search(), { params })
+    const json = await searchWallhaven(params)
     items.value = normalize(json?.data)
     lastPage.value = json?.meta?.last_page || 1
     if (page.value > lastPage.value) page.value = lastPage.value
@@ -299,7 +312,7 @@ async function setAsWallpaper() {
 
 function openSource() {
   const url = lightbox.value?.pageUrl
-  if (url) window.open(url, '_blank', 'noopener')
+  if (url) openExternal(url)
 }
 
 /** 下载原图（fetch blob 直存，失败则新标签页打开兜底） */
@@ -323,7 +336,7 @@ async function downloadWallpaper() {
     message.success($t('wallpaper.downloadDone'))
   } catch (e) {
     // 跨域/CORS 失败时兜底：新标签页打开原图，用户可手动另存
-    window.open(url, '_blank', 'noopener')
+    openExternal(url)
     message.error(e?.message || $t('wallpaper.downloadFail'))
   } finally {
     downloading.value = false

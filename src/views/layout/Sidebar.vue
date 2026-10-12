@@ -65,7 +65,7 @@ import { usePanelsStore } from '@/stores/panels'
 import { useUiStore } from '@/stores/ui'
 import { storeToRefs } from 'pinia'
 
-const props = defineProps({
+defineProps({
   active: { type: String, default: 'home' },
 })
 const emit = defineEmits(['open-settings', 'select', 'update:custom', 'panel-deleted', 'update:collapsed'])

@@ -21,7 +21,8 @@ import { $t } from '@/composables/useI18n'
  *   v6: 当前——+ cache 表（localStorage 每日缓存整体迁入 IndexedDB）
  */
 const DB_NAME = 'itabs-nav-db'
-const DB_VERSION = 6
+/** 当前数据库版本（导出供调试/文档引用，schema 声明见下方 version(1..n) 链） */
+export const DB_VERSION = 6
 
 /** 站点可用的网格尺寸（行x列） */
 export const SITE_SIZES = ['1x1', '1x2', '2x1', '2x2', '2x4', '4x2']
@@ -209,9 +210,14 @@ export async function reorderSites(orderedSites) {
   })
 }
 
+/**
+ * 取当前最大 order：走 'order' 索引取末位，避免全表载入内存。
+ * order 缺失的记录不进该索引，但其排序权重本就是 0（见 getAllSites 的 ?? 0 回退），
+ * 不影响最大值判定。
+ */
 async function getMaxOrder(db) {
-  const sites = await db.table('sites').toArray()
-  return sites.reduce((max, s) => Math.max(max, s.order ?? 0), 0)
+  const last = await db.table('sites').orderBy('order').last()
+  return last?.order ?? 0
 }
 
 /* ---------------- 设置 key-value ---------------- */
@@ -253,11 +259,11 @@ export async function setCache(key, wrap) {
  */
 export async function migrateSetting(key, legacyKey, fallback = null, parse = (v) => v) {
   const cur = await getSetting(key, undefined)
-  let legacy = null
+  let legacy
   try {
     legacy = localStorage.getItem(legacyKey)
   } catch {
-    legacy = null
+    /* localStorage 不可用时视为无遗留值 */
   }
   if (cur !== undefined) {
     if (legacy != null) {

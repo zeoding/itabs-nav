@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { $t, getLanguage } from '@/composables/useI18n'
 import { WEATHER_API, NET_API, GEO_API } from '@/config/api'
+import http from '@/utils/http'
 import { getDaily, getAny, setDaily } from '@/utils/dailyCache'
 import { getSetting, setSetting, migrateSetting } from '@/db'
 
@@ -47,9 +48,8 @@ async function hasSavedCity() {
 let ipResolved = false
 async function resolveCityByIP() {
   try {
-    const res = await fetch(NET_API.myip(), { cache: 'no-store' })
-    if (!res.ok) return null
-    const json = await res.json()
+    // &_= 时间戳对齐原 fetch cache:'no-store' 的绕缓存意图（axios 无等价选项）
+    const json = await http.get(`${NET_API.myip()}&_=${Date.now()}`)
     const root = json && typeof json === 'object' && json.data && typeof json.data === 'object' ? json.data : json
     const parts = String(root.region || '').split(/\s+/).filter(Boolean)
     return parts[2] || parts[1] || root.district || null
@@ -87,9 +87,13 @@ async function locateCityFn() {
   })
   const { latitude, longitude } = pos.coords
   const url = GEO_API.reverse(latitude, longitude)
-  const r = await fetch(url)
-  if (!r.ok) return null
-  const j = await r.json()
+  // Nominatim 自带缓存响应头，走 http 封装即可；HTTP 失败与原 fetch 行为一致返回 null
+  let j
+  try {
+    j = await http.get(url)
+  } catch {
+    return null
+  }
   const a = j.address || {}
   return a.city || a.town || a.county || a.state || a.region || a.country || null
 }
@@ -245,9 +249,8 @@ export const useWeatherStore = defineStore('weather', () => {
     try {
       const langParam = lang === 'en' ? '&lang=en' : ''
       const url = `${WEATHER_API.current(city.value)}&extended=true&forecast=true&hourly=true&indices=true${langParam}`
-      const res = await fetch(url, { cache: 'no-store' })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const json = await res.json()
+      // &_= 时间戳对齐原 fetch cache:'no-store' 的绕缓存意图；非 2xx 由 http 封装统一抛错
+      const json = await http.get(`${url}&_=${Date.now()}`)
       const root = json && typeof json === 'object' && json.data && typeof json.data === 'object' ? json.data : json
       const parsed = parse(root, city.value)
       if (!parsed) throw new Error($t('weather.error'))

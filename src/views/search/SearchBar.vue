@@ -6,11 +6,12 @@
  * - 中间输入+ 右侧搜索按钮
  * - 点击外部自动关闭下拉
  */
-import { ref, computed, onMounted, onBeforeUnmount, watch, reactive } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import EngineEditor from '@/views/search/EngineEditor.vue'
 import { useConfirm } from '@/composables/useConfirm'
 import { $t } from '@/composables/useI18n'
 import { loadEngineSvg } from '@/utils/thesvg'
+import { openExternal } from '@/utils/openExternal'
 import { RiCloseLine } from '@remixicon/vue'
 
 const props = defineProps({
@@ -86,7 +87,8 @@ function search() {
   if (!kw) return
   const base = currentEngine.value?.url
   if (!base) return
-  window.open(base + encodeURIComponent(kw), '_blank', 'noopener')
+  // 自定义引擎 url 属用户数据，同样走白名单（防 javascript: 伪协议引擎）
+  openExternal(base + encodeURIComponent(kw))
 }
 </script>
 
