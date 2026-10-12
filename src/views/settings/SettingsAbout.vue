@@ -2,7 +2,8 @@
 /**
  * 设置 - 关于 Tab
  * - 应用信息 + 构建日期（version / 构建日期均为 vite define 注入的编译期常量）
- * - 手动检查更新：latest → toast 提示；available → 顶部提示条弹出；error → 失败提示
+ * - 手动检查更新：available → 顶部提示条弹出；latest / ignored → toast；
+ *   dismissed 不额外提示（提示条已重新弹出）；error → 失败提示
  */
 import { ref } from 'vue'
 import { $t } from '@/composables/useI18n'
@@ -24,7 +25,12 @@ async function onCheckUpdate() {
   checking.value = true
   const result = await check({ manual: true })
   checking.value = false
-  if (result === 'available') return // 顶部提示条已弹出，无需额外提示
+  if (result === 'available' || result === 'dismissed') return // 顶部提示条已弹出
+  if (result === 'ignored') {
+    // 新版本确实存在，只是此前被用户「忽略此版本」：不能说「已是最新」
+    message.info($t('update.ignoredHint'))
+    return
+  }
   if (result === 'latest') {
     message.success($t('update.latest', { version: appVersion }))
   } else {

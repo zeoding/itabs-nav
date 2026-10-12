@@ -28,6 +28,7 @@ export default [
         // vite.config.js 的编译期常量
         __APP_VERSION__: 'readonly',
         __BUILD_DATE__: 'readonly',
+        __BUILD_TIME__: 'readonly',
       },
     },
   },

@@ -148,6 +148,7 @@ export default {
     checkNow: 'Check for updates',
     checking: 'Checking...',
     latest: 'You are on the latest version (v{version})',
+    ignoredHint: 'A new version exists, but you skipped it',
     failed: 'Check failed, please try again later',
   },
 

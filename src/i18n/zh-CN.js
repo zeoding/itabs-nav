@@ -152,6 +152,7 @@ export default {
     checkNow: '检查更新',
     checking: '正在检查...',
     latest: '已是最新版本（v{version}）',
+    ignoredHint: '发现新版本，但此版本已被你忽略',
     failed: '检查失败，请稍后重试',
   },
 

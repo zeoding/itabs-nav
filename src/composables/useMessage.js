@@ -1,8 +1,9 @@
-﻿import { ref } from 'vue'
+import { ref } from 'vue'
 
 /**
  * 全局消息（轻量 toast）
  * - 调用：const message = useMessage(); message.success('已复制'); message.error('失败')
+ *   四种类型：success / error / info / warning
  * - 单例：所有组件共用一个消息队列
  * - 自动消失：默认 2200ms
  * - 最多并发 5 条：超出后最早的先消失
@@ -59,6 +60,8 @@ export function useMessage() {
     queue,
     success(content, duration) { return push('success', content, duration) },
     error(content, duration)   { return push('error',   content, duration) },
+    info(content, duration)    { return push('info',    content, duration) },
+    warning(content, duration) { return push('warning', content, duration) },
     dismiss(id) { remove(id) },
   }
 }

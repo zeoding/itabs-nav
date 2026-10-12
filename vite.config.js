@@ -8,9 +8,16 @@ import { resolve, dirname } from 'node:path'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)))
 const pkg = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf-8'))
 
+/**
+ * 本次配置加载的时间戳（毫秒）
+ * - 同时用于 __BUILD_TIME__ 注入与 dist/version.json 的 buildTime，
+ *   两者必须取同一值，否则运行时会把自己判定成「有新版本」而误报。
+ */
+const BUILD_TIME = Date.now()
+
 /** 构建时间（本地时区，格式 YYYY-MM-DD HH:mm），注入为全局常量 __BUILD_DATE__ */
 function buildDateString() {
-  const d = new Date()
+  const d = new Date(BUILD_TIME)
   const pad = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
@@ -38,7 +45,8 @@ function extractNotes(version) {
 
 /**
  * 构建完成后在 dist/ 生成 version.json（运行时更新检查的远程元信息）
- * - version/buildTime 用于与本地注入的 __APP_VERSION__ 对比
+ * - buildTime：本次构建时间戳，运行时更新的**主判据**（见 useUpdateChecker）
+ * - version：语义化版本号，作次级判据与展示用（人工维护，可能滞后）
  * - notes 取自 CHANGELOG.md 中与 version 匹配的段落（可选维护）
  */
 function versionMetaPlugin() {
@@ -48,11 +56,11 @@ function versionMetaPlugin() {
     closeBundle() {
       const meta = {
         version: pkg.version,
-        buildTime: Date.now(),
+        buildTime: BUILD_TIME,
         notes: extractNotes(pkg.version),
       }
       writeFileSync(resolve(ROOT, 'dist', 'version.json'), JSON.stringify(meta, null, 2))
-      console.log(`[version-meta] dist/version.json → v${meta.version}`)
+      console.log(`[version-meta] dist/version.json → v${meta.version} @ ${new Date(BUILD_TIME).toISOString()}`)
     },
   }
 }
@@ -78,6 +86,8 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
     __BUILD_DATE__: JSON.stringify(buildDateString()),
+    // 与 dist/version.json 的 buildTime 同源，供运行时判断构建产物是否已更新
+    __BUILD_TIME__: JSON.stringify(BUILD_TIME),
   },
   // 相对路径：dist 可直接 file:// 预览或部署到任意子路径，否则绝对 /assets 会 404 白屏
   base: './',
