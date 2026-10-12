@@ -8,6 +8,52 @@
   </head>
   <body>
     <div id="app"></div>
+    <!-- 首次加载初始化动画：随 HTML 立即渲染，App 挂载并载完数据后淡出移除（见 App.vue removeBootLoader） -->
+    <div id="boot-loader" aria-label="页面加载中">
+      <div class="boot-spinner"></div>
+      <div class="boot-text">正在加载…</div>
+    </div>
+    <style>
+      #boot-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background: #f5f6f8;
+        transition: opacity 0.4s ease;
+      }
+      @media (prefers-color-scheme: dark) {
+        #boot-loader {
+          background: #1a1c20;
+        }
+      }
+      #boot-loader.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .boot-spinner {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 3px solid rgba(120, 130, 150, 0.25);
+        border-top-color: #5b8cff;
+        animation: boot-spin 0.9s linear infinite;
+      }
+      .boot-text {
+        font-size: 14px;
+        color: rgba(120, 130, 150, 0.9);
+        letter-spacing: 2px;
+      }
+      @keyframes boot-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

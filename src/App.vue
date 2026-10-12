@@ -182,8 +182,18 @@ const editingSite = ref(null)
 
 /** 侧栏收起后布局回收（状态归 ui store，Sidebar 内切换） */
 
+/** 移除首屏加载动画（index.html 内置）：淡出后删除节点；超长兜底 8s 强制移除防白屏 */
+function removeBootLoader() {
+  const el = document.getElementById('boot-loader')
+  if (!el) return
+  el.classList.add('fade-out')
+  el.addEventListener('transitionend', () => el.remove(), { once: true })
+  setTimeout(() => el.remove(), 1000)
+}
+
 onMounted(async () => {
   await Promise.all([load(), loadSettings()])
+  removeBootLoader()
   window.addEventListener('mousemove', onMouseMove)
   // 版本更新检查：启动延迟首检 + 轮询 + 可见补检（见 useUpdateChecker）
   startUpdateCheck()
