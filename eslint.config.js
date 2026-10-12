@@ -26,6 +26,7 @@ export default [
       globals: {
         ...globals.browser,
         // vite.config.js 的编译期常量
+        __APP_VERSION__: 'readonly',
         __BUILD_DATE__: 'readonly',
       },
     },

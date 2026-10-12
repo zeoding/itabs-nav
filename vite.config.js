@@ -2,6 +2,11 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import { fileURLToPath, URL } from 'node:url'
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { resolve, dirname } from 'node:path'
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)))
+const pkg = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf-8'))
 
 /** 构建时间（本地时区，格式 YYYY-MM-DD HH:mm），注入为全局常量 __BUILD_DATE__ */
 function buildDateString() {
@@ -10,9 +15,51 @@ function buildDateString() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+/**
+ * 从 CHANGELOG.md 提取指定版本的更新说明
+ * - 只识别与发布版本精确匹配的段落标题（## 0.2.0 或 ## v0.2.0），
+ *   取到下一个同级标题为止；没有对应段落返回空串（UI 不展示 notes）
+ */
+function extractNotes(version) {
+  const file = resolve(ROOT, 'CHANGELOG.md')
+  if (!existsSync(file)) return ''
+  const text = readFileSync(file, 'utf-8')
+  const lines = text.split(/\r?\n/)
+  const heading = new RegExp(`^##\\s+v?${version.replace(/\./g, '\\.')}\\s*$`)
+  const start = lines.findIndex((l) => heading.test(l))
+  if (start === -1) return ''
+  const body = []
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^##\s/.test(lines[i])) break
+    body.push(lines[i])
+  }
+  return body.join('\n').trim()
+}
+
+/**
+ * 构建完成后在 dist/ 生成 version.json（运行时更新检查的远程元信息）
+ * - version/buildTime 用于与本地注入的 __APP_VERSION__ 对比
+ * - notes 取自 CHANGELOG.md 中与 version 匹配的段落（可选维护）
+ */
+function versionMetaPlugin() {
+  return {
+    name: 'version-meta',
+    apply: 'build',
+    closeBundle() {
+      const meta = {
+        version: pkg.version,
+        buildTime: Date.now(),
+        notes: extractNotes(pkg.version),
+      }
+      writeFileSync(resolve(ROOT, 'dist', 'version.json'), JSON.stringify(meta, null, 2))
+      console.log(`[version-meta] dist/version.json → v${meta.version}`)
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue(), vueDevTools({ launchEditor: 'code' })],
+  plugins: [vue(), vueDevTools({ launchEditor: 'code' }), versionMetaPlugin()],
   // 路径别名：源码内统一用 @/... 引入，不再使用 ./ ../ 相对路径
   resolve: {
     alias: {
@@ -29,6 +76,7 @@ export default defineConfig({
   },
   // 全局编译期常量
   define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
     __BUILD_DATE__: JSON.stringify(buildDateString()),
   },
   // 相对路径：dist 可直接 file:// 预览或部署到任意子路径，否则绝对 /assets 会 404 白屏

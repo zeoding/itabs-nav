@@ -124,7 +124,7 @@ export default {
     },
     about: {
       name: 'itabs-nav',
-      version: 'v0.1.0 · Pure front-end navigation page',
+      version: 'v{version} · Pure front-end navigation page',
       buildDate: 'Built on',
       desc: 'iTab-style browser start page: glassmorphism, search bar, drag-to-reorder, widgets (clock/weather/todo/calendar), no backend, data stored in browser IndexedDB',
     },
@@ -136,6 +136,19 @@ export default {
       amber: 'Amber',
       sky: 'Sky',
     },
+  },
+
+  // Version update notice (top bar + manual check in About)
+  update: {
+    found: 'New version available',
+    notes: "What's new",
+    refresh: 'Refresh now',
+    later: 'Later',
+    ignore: 'Skip this version',
+    checkNow: 'Check for updates',
+    checking: 'Checking...',
+    latest: 'You are on the latest version (v{version})',
+    failed: 'Check failed, please try again later',
   },
 
   confirm: {

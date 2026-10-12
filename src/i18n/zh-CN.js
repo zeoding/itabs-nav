@@ -128,7 +128,7 @@ export default {
     },
     about: {
       name: 'itabs-nav',
-      version: 'v0.1.0 · 纯前端导航页',
+      version: 'v{version} · 纯前端导航页',
       buildDate: '构建日期',
       desc: 'iTab 风格的浏览器导航页：玻璃拟态、搜索引擎栏、拖拽排序、小组件（时钟/ 天气 / 待办 / 日历）、无后端，数据存储在浏览器 IndexedDB 中',
     },
@@ -140,6 +140,19 @@ export default {
       amber: '琥珀',
       sky: '天蓝',
     },
+  },
+
+  // 版本更新提醒（提示条 + 关于页手动检查）
+  update: {
+    found: '发现新版本',
+    notes: '更新内容',
+    refresh: '立即刷新',
+    later: '稍后提醒',
+    ignore: '忽略此版本',
+    checkNow: '检查更新',
+    checking: '正在检查...',
+    latest: '已是最新版本（v{version}）',
+    failed: '检查失败，请稍后重试',
   },
 
   // 确认弹窗

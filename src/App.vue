@@ -56,6 +56,7 @@ const WidgetPreviewDialog = defineAsyncComponent({
 import ConfirmHost from '@/components/feedback/ConfirmHost.vue'
 import MessageHost from '@/components/feedback/MessageHost.vue'
 import TipHost from '@/components/feedback/TipHost.vue'
+import UpdateNotice from '@/components/feedback/UpdateNotice.vue'
 import Snowfall from '@/views/layout/Snowfall.vue'
 import SayingFooter from '@/views/layout/SayingFooter.vue'
 import WidgetTaskbar from '@/views/layout/WidgetTaskbar.vue'
@@ -64,6 +65,7 @@ import { useSettingsStore } from '@/stores/settings'
 import { usePanelsStore } from '@/stores/panels'
 import { useUiStore } from '@/stores/ui'
 import { setLanguage, $t } from '@/composables/useI18n'
+import { useUpdateChecker } from '@/composables/useUpdateChecker'
 import { storeToRefs } from 'pinia'
 import * as db from '@/db'
 import { TOOL_KINDS } from '@/db'
@@ -138,6 +140,8 @@ const previewTitle = computed(() => {
 
 /** 精简模式：只保留搜索引擎 */
 const minimalist = ref(false)
+/** 版本更新检查：随 App 根组件生命周期启停（启动首检 + 轮询 + 可见补检） */
+const { start: startUpdateCheck, stop: stopUpdateCheck } = useUpdateChecker()
 /** 飘雪开关 + 侧栏收起：统一走 ui store（IndexedDB 持久化） */
 const uiStore = useUiStore()
 const { snowOn, sidebarCollapsed } = storeToRefs(uiStore)
@@ -174,10 +178,13 @@ const editingSite = ref(null)
 onMounted(async () => {
   await Promise.all([load(), loadSettings()])
   window.addEventListener('mousemove', onMouseMove)
+  // 版本更新检查：启动延迟首检 + 轮询 + 可见补检（见 useUpdateChecker）
+  startUpdateCheck()
 })
 onBeforeUnmount(() => {
   window.removeEventListener('mousemove', onMouseMove)
   stopWallpaperTimer()
+  stopUpdateCheck()
 })
 
 function openAdd() {
@@ -514,6 +521,7 @@ async function handleRestored() {
     <ConfirmHost />
     <MessageHost />
     <TipHost />
+    <UpdateNotice />
     <Transition name="snow-fade">
       <Snowfall v-if="snowOn" />
     </Transition>

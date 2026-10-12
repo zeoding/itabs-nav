@@ -60,6 +60,7 @@
 - 🗂️ **代码分割**：`codeSplitting.groups`（vendor-core / vendor-ui / thesvg-icons / vendor / dialogs / app-runtime；`@remixicon/vue` 需保持 tree-shaking，勿提高 vendor-core 优先级）
 - 🗜️ **打包 zip**：`npm run build:zip` 一键生成部署包（`base: './'`，解压即 `index.html` + `favicon.ico` + `js/ + css/ + images/ + fonts/ + media/`，支持 `file://` 预览；文件名均带 hash）
 - 🕰️ **构建时间**：`__BUILD_DATE__` 编译期常量（本地时区 `YYYY-MM-DD HH:mm`）
+- 🔄 **版本更新提醒**：构建时自动生成 `dist/version.json`（版本号取自 `package.json`，更新说明提取自 `CHANGELOG.md` 同版本段落）；运行时启动首检 + 每 6h 轮询 + 标签页可见补检，发现新版本顶部弹提示条（立即刷新 / 稍后提醒 / 忽略此版本），设置 → 关于可手动检查。发版只需 bump version + 在 `CHANGELOG.md` 顶部追加 `## x.y.z` 段落
 - 🛡️ **错误隔离**：每个弹窗独立错误边界，单组件崩溃不影响全局
 - 💡 **v-tip**：自研全局 tooltip 指令替代原生 title
 - 🌐 **API 收口**：所有对外网络地址只允许出现在 `src/config/api.js`（uapis 聚合接口 + picsum/Wallhaven/Nominatim/imsyy 备源）
