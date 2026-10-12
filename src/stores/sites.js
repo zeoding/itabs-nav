@@ -31,12 +31,13 @@ export const useSitesStore = defineStore('sites', () => {
       seeded = true
       return
     }
+    // 首页默认：百度 + 4 个内置小组件（kind/url/icon 与 App.TOOL_PRESETS 保持一致）
     const seedSites = [
       { name: '百度', url: 'https://www.baidu.com', icon: 'thesvg:baidu' },
-      { name: 'GitHub', url: 'https://github.com', icon: 'thesvg:github' },
-      { name: 'Google', url: 'https://www.google.com', icon: 'thesvg:google' },
-      // 壁纸库默认上桌面（工具卡，点击开弹窗）
+      { name: '文本分割', url: 'action:split-text', icon: '✂️', kind: 'split-text' },
+      { name: '免费邮箱', url: 'action:free-email', icon: '📫', kind: 'free-email' },
       { name: '壁纸库', url: 'action:wallpaper', icon: '🖼️', kind: 'wallpaper' },
+      { name: '周报统计', url: 'action:week-report', icon: '📊', kind: 'week-report' },
     ]
     for (const site of seedSites) {
       await db.addSite({ ...site, panel: 'home' })
@@ -143,5 +144,9 @@ export const useSitesStore = defineStore('sites', () => {
     remove,
     move,
     clearCurrentPanel,
+    /** 清空全部数据后调用：重置种子标志，让下次 load 重新播种默认首页 */
+    resetSeed() {
+      seeded = false
+    },
   }
 })

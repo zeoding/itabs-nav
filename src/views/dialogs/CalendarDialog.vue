@@ -25,6 +25,7 @@ import {
   getCellLabel,
   isWeekend,
   hasFestival,
+  getHoliday,
 } from '@/utils/lunar'
 
 defineProps({
@@ -162,6 +163,15 @@ function dayFestivals(d) {
   return getFestivals(d)
 }
 
+/** 每个格子的法定假日/补班标记（'休' | '班' | ''），与 grid 一一对应 */
+const holidayMarks = computed(() =>
+  grid.value.map((d) => {
+    const h = getHoliday(d)
+    if (!h) return ''
+    return h.work ? '班' : '休'
+  })
+)
+
 function close() {
   emit('update:open', false)
 }
@@ -280,6 +290,8 @@ onMounted(() => {
                     selected: isSelected(d),
                     weekend: isWeekend(d),
                     festival: hasFestival(d),
+                    xiu: holidayMarks[i] === '休',
+                    ban: holidayMarks[i] === '班',
                   },
                 ]"
                 :data-cell-kind="getCellLabel(d).kind"
@@ -293,6 +305,11 @@ onMounted(() => {
                 >
                   {{ getCellLabel(d).text }}
                 </span>
+                <span
+                  v-if="holidayMarks[i]"
+                  class="day-tag"
+                  :class="holidayMarks[i] === '休' ? 'tag-xiu' : 'tag-ban'"
+                >{{ holidayMarks[i] }}</span>
                 <span
                   v-if="events.some((e) => e.date === formatDate(d))"
                   class="dot"
@@ -657,6 +674,23 @@ onMounted(() => {
     opacity: 0.4;
   }
 
+  /* 法定节假日（休）：淡红背景；调休补班日（班）：浅灰背景 */
+  &.xiu {
+    background: rgba(239, 68, 68, 0.08);
+  }
+
+  &.ban {
+    background: rgba(100, 116, 139, 0.12);
+  }
+
+  &.xiu:hover {
+    background: rgba(239, 68, 68, 0.14);
+  }
+
+  &.ban:hover {
+    background: rgba(100, 116, 139, 0.2);
+  }
+
   &.selected {
     background: color-mix(in srgb, @accent 0.18%, transparent);
     /*?box-shadow 内嵌到元素内部画边框，绕开相邻 grid 单元?overflow:hidden 的裁?*/
@@ -672,6 +706,11 @@ onMounted(() => {
   /* 休息日：周六、周日字体红色*/
   &.weekend .day-num {
     color: #ef4444;
+  }
+
+  /* 调休补班的周末照常上班：不显示红色 */
+  &.ban .day-num {
+    color: @text;
   }
 
   /* 法定节假日：日期+ 标签都加粗*/
@@ -741,6 +780,29 @@ onMounted(() => {
   height: 4px;
   border-radius: @radius-circle;
   background: @accent;
+}
+
+/* 右上角休/班角标 */
+.day-tag {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  font-size: 9px;
+  line-height: 15px;
+  text-align: center;
+  color: #fff;
+  pointer-events: none;
+
+  &.tag-xiu {
+    background: #ef4444;
+  }
+
+  &.tag-ban {
+    background: #94a3b8;
+  }
 }
 
 .muted {

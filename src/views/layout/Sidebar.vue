@@ -61,7 +61,7 @@ function resolveIcon(name) {
   return ICONS[name] || RiFolderLine
 }
 
-import { usePanelsStore } from '@/stores/panels'
+import { usePanelsStore, FAVORITE_PANEL_ID } from '@/stores/panels'
 import { useUiStore } from '@/stores/ui'
 import { storeToRefs } from 'pinia'
 
@@ -109,7 +109,8 @@ const allItems = computed(() => [
     key: c.id,
     icon: c.icon,
     title: c.title,
-    removable: true,
+    // 收藏面板与主页一样受保护：不弹右键菜单（= 不可编辑/删除）
+    removable: c.id !== FAVORITE_PANEL_ID,
   })),
 ])
 

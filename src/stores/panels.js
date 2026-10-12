@@ -11,6 +11,9 @@ export const PANELS_KEY = 'customPanels'
 /** @deprecated 仅兼容旧引用，实际已不再读写 localStorage */
 export const PANEL_STORAGE_KEY = 'itab.rail.custom'
 
+/** 受保护面板：收藏（与主页一样不可删除/编辑，id 固定为默认面板 id） */
+export const FAVORITE_PANEL_ID = 'c1'
+
 export const DEFAULT_CUSTOM_PANELS = [
   { id: 'c1', icon: 'RiStarLine', title: '收藏' },
   { id: 'c2', icon: 'RiBookLine', title: '学习' },

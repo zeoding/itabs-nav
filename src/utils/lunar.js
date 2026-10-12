@@ -7,7 +7,7 @@
  *  - getZodiac(date)            星座
  *  - getDayAlmanac(date)        今日宜/忌/值神/星宿等
  */
-import { Solar } from 'lunar-javascript'
+import { Solar, HolidayUtil } from 'lunar-javascript'
 
 /** 获取某日期的所有节日，按类型分组 */
 export function getFestivals(date) {
@@ -81,6 +81,19 @@ export function isWeekend(date) {
 /** 是否法定节假日（有节日标记） */
 export function hasFestival(date) {
   return getFestivals(date).length > 0
+}
+
+/**
+ * 法定节假日/补班日（基于 lunar-javascript 内置国务院安排数据）
+ * - 放假（含周末连休的法定假）：{ work: false, name: '国庆中秋' }
+ * - 调休补班日：{ work: true, name: '国庆中秋' }
+ * - 普通日：null
+ */
+export function getHoliday(date) {
+  const d = date instanceof Date ? date : new Date(date)
+  const h = HolidayUtil.getHoliday(d.getFullYear(), d.getMonth() + 1, d.getDate())
+  if (!h) return null
+  return { work: h.isWork(), name: h.getName() }
 }
 
 /** 12 星座（按月份范围匹配，name 为字典 key：calendar.zodiac.*） */

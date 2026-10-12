@@ -33,8 +33,9 @@ import { CanvasRenderer } from 'echarts/renderers'
 import * as XLSX from 'xlsx'
 import { getSetting, setSetting } from '@/db'
 import { useMessage } from '@/composables/useMessage'
+import { useConfirm } from '@/composables/useConfirm'
 import { useSettingsStore } from '@/stores/settings'
-import { RiFileUploadLine } from '@remixicon/vue'
+import { RiFileUploadLine, RiDeleteBinLine } from '@remixicon/vue'
 
 echarts.use([
   BarChart,
@@ -48,6 +49,7 @@ echarts.use([
 ])
 
 const message = useMessage()
+const { confirm } = useConfirm()
 const settingsStore = useSettingsStore()
 const { isDark } = storeToRefs(settingsStore)
 
@@ -248,6 +250,21 @@ async function persist() {
   }
 }
 
+/** 清空已生成的统计数据（表格 + 图表 + 持久化记录） */
+async function clearData() {
+  const ok = await confirm({
+    title: '清空统计数据',
+    message: '将清除已生成的表格、图表及保存记录，确定清空？',
+    okText: '清空',
+    danger: true,
+  })
+  if (!ok) return
+  rows.value = []
+  savedAt.value = null
+  await persist()
+  message.success('已清空')
+}
+
 /** 原版 dayjs().format('YYYY-MM-DD HH:mm:ss') 的原生等价 */
 function formatDate(d = new Date()) {
   const p = (n) => String(n).padStart(2, '0')
@@ -294,6 +311,15 @@ onBeforeUnmount(() => {
       <button class="wr-btn" type="button" @click="fileRef?.click()">
         <RiFileUploadLine size="16" aria-hidden="true" />
         选择文件
+      </button>
+      <button
+        v-if="rows.length"
+        class="wr-btn danger"
+        type="button"
+        @click="clearData"
+      >
+        <RiDeleteBinLine size="16" aria-hidden="true" />
+        清空
       </button>
       <span v-show="savedAt" class="gen-tag">生成时间: {{ savedAt }}</span>
     </div>
@@ -393,6 +419,15 @@ onBeforeUnmount(() => {
   &:active {
     transform: scale(0.96);
   }
+
+  /* 清空按钮：危险色 */
+  &.danger {
+    background: #ef4444;
+
+    &:hover {
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+    }
+  }
 }
 
 .gen-tag {
@@ -414,6 +449,11 @@ onBeforeUnmount(() => {
 .tables {
   flex: 1.2;
   min-width: 320px;
+
+  /* 空数据时 charts 区为空，表格区占满整行，空态提示才能在整个内容区居中 */
+  &:has(.empty-hint) {
+    flex: 1 1 100%;
+  }
 }
 
 .charts {

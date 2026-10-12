@@ -177,23 +177,27 @@ async function load(force = false) {
   }
 }
 
-function onSearch() {
+/** 新搜索（换关键词/分类/排序）：清空旧结果，让 loading 态可见，避免网格突然整体替换 */
+function newSearch() {
   page.value = 1
+  items.value = []
   load(true)
+}
+
+function onSearch() {
+  newSearch()
 }
 
 function onCategory(value) {
   if (categories.value === value) return
   categories.value = value
-  page.value = 1
-  load(true)
+  newSearch()
 }
 
 function onSorting(value) {
   if (sorting.value === value) return
   sorting.value = value
-  page.value = 1
-  load(true)
+  newSearch()
 }
 
 function prevPage() {

@@ -78,7 +78,7 @@ import { TOOL_KINDS } from '@/db'
 
 const sitesStore = useSitesStore()
 const { sites, loading, currentPanel } = storeToRefs(sitesStore)
-const { load, add, update, remove, move, setPanel, clearCurrentPanel } = sitesStore
+const { load, add, update, remove, move, setPanel } = sitesStore
 const settingsStore = useSettingsStore()
 const { settings, backgroundStyle, isDark } = storeToRefs(settingsStore)
 const {
@@ -280,10 +280,13 @@ onBeforeUnmount(() => {
 
 /** 删除面板 */
 async function onPanelDeleted(key) {
+  // 只删被删除面板的站点：clearCurrentPanel 清的是 currentPanel 指向的面板，
+  // 若当前停在别的面板（或先切回 home）会误删其他面板的数据
+  await db.clearPanel(key)
   if (currentPanel.value === key) {
     setPanel('home')
   }
-  await clearCurrentPanel()
+  await load()
   // 刷新面板列表（单例已同步，这里只需重读兜底跨 tab 场景）
   refreshPanels()
 }
@@ -379,6 +382,8 @@ function handleToolClick(widget) {
 
 async function handleReset() {
   await db.clearAll()
+  // 重置种子标志：否则 seeded 已置位，清空后 load 不会重新播种默认首页
+  sitesStore.resetSeed()
   await Promise.all([load(), loadSettings()])
   settingsOpen.value = false
 }
