@@ -239,7 +239,7 @@ onUnmounted(() => {
 <style scoped lang="less">
 .widgets-bar {
   display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr 1fr 1.2fr;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 14px;
   width: 100%;
   max-width: 1080px;
@@ -296,11 +296,12 @@ onUnmounted(() => {
   }
 }
 
-/* 时钟卡片：暖橙渐变*/
+/* 时钟卡片：暖橙渐变（等宽网格下问候语纵向排列在时间下方，避免英文裁切）*/
 .widget-clock {
-  flex-direction: row;
-  align-items: center;
-  gap: 18px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
   cursor: pointer;
   background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
 }
