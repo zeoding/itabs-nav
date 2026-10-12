@@ -12,50 +12,51 @@ import SearchBar from '@/views/search/SearchBar.vue'
 import WidgetsBar from '@/views/layout/WidgetsBar.vue'
 import SiteGrid from '@/views/sites/SiteGrid.vue'
 import Sidebar from '@/views/layout/Sidebar.vue'
-import AsyncLoading from '@/components/feedback/AsyncLoading.vue'
+import DialogAsyncLoading from '@/components/feedback/DialogAsyncLoading.vue'
 import { RiEyeLine, RiEyeOffLine, RiRefreshLine, RiSnowflakeLine, RiMoonLine, RiSunLine } from '@remixicon/vue'
 // 弹窗 / 编辑器：按需懒加载，点击时才下载对应 chunk
 // - delay: 200（毫秒）后才显示 loading，避免快速 chunk 闪现 loader
-// - loadingComponent: 占位组件（旋转圆 + 提示）
+// - loadingComponent: fixed 覆盖层占位（真弹窗也是 fixed 覆盖层，
+//   若用普通块级占位会参与文档流，把页面内容顶开造成布局抖动）
 const SettingsPanel = defineAsyncComponent({
   loader: () => import('@/views/settings/SettingsPanel.vue'),
   delay: 200,
-  loadingComponent: AsyncLoading,
+  loadingComponent: DialogAsyncLoading,
 })
 const WeatherDialog = defineAsyncComponent({
   loader: () => import('@/views/dialogs/WeatherDialog.vue'),
   delay: 200,
-  loadingComponent: AsyncLoading,
+  loadingComponent: DialogAsyncLoading,
 })
 const TodoDialog = defineAsyncComponent({
   loader: () => import('@/views/dialogs/TodoDialog.vue'),
   delay: 200,
-  loadingComponent: AsyncLoading,
+  loadingComponent: DialogAsyncLoading,
 })
 const CalendarDialog = defineAsyncComponent({
   loader: () => import('@/views/dialogs/CalendarDialog.vue'),
   delay: 200,
-  loadingComponent: AsyncLoading,
+  loadingComponent: DialogAsyncLoading,
 })
 const HotDialog = defineAsyncComponent({
   loader: () => import('@/views/dialogs/HotDialog.vue'),
   delay: 200,
-  loadingComponent: AsyncLoading,
+  loadingComponent: DialogAsyncLoading,
 })
 const WorldTimeDialog = defineAsyncComponent({
   loader: () => import('@/views/dialogs/WorldTimeDialog.vue'),
   delay: 200,
-  loadingComponent: AsyncLoading,
+  loadingComponent: DialogAsyncLoading,
 })
 const SiteEditor = defineAsyncComponent({
   loader: () => import('@/views/sites/SiteEditor.vue'),
   delay: 200,
-  loadingComponent: AsyncLoading,
+  loadingComponent: DialogAsyncLoading,
 })
 const WidgetPreviewDialog = defineAsyncComponent({
   loader: () => import('@/views/dialogs/WidgetPreviewDialog.vue'),
   delay: 200,
-  loadingComponent: AsyncLoading,
+  loadingComponent: DialogAsyncLoading,
 })
 // 全局 host：随 App 启动即用，同步加载（体积小）
 import ConfirmHost from '@/components/feedback/ConfirmHost.vue'
