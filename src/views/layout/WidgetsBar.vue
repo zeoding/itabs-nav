@@ -15,7 +15,7 @@ import { useI18n, $t } from '@/composables/useI18n'
 import { Solar } from 'lunar-javascript'
 import { RiRefreshLine } from '@remixicon/vue'
 
-const emit = defineEmits(['open-weather', 'open-todo', 'open-calendar', 'open-hot'])
+const emit = defineEmits(['open-weather', 'open-todo', 'open-calendar', 'open-hot', 'open-worldtime'])
 const { lang } = useI18n()
 
 const now = ref(new Date())
@@ -114,8 +114,16 @@ onUnmounted(() => {
 
 <template>
   <div class="widgets-bar">
-    <!-- 时钟卡片 -->
-    <div class="widget widget-clock">
+    <!-- 时钟卡片：点击打开世界时间弹窗 -->
+    <div
+      class="widget widget-clock"
+      role="button"
+      tabindex="0"
+      v-tip="$t('clock.viewWorldTime')"
+      :aria-label="$t('worldTime.title')"
+      @click="emit('open-worldtime')"
+      @keydown.enter="emit('open-worldtime')"
+    >
       <div class="clock-time">
         <span
           v-for="(ch, i) in hhStr"
@@ -293,6 +301,7 @@ onUnmounted(() => {
   flex-direction: row;
   align-items: center;
   gap: 18px;
+  cursor: pointer;
   background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
 }
 

@@ -42,6 +42,11 @@ const HotDialog = defineAsyncComponent({
   delay: 200,
   loadingComponent: AsyncLoading,
 })
+const WorldTimeDialog = defineAsyncComponent({
+  loader: () => import('@/views/dialogs/WorldTimeDialog.vue'),
+  delay: 200,
+  loadingComponent: AsyncLoading,
+})
 const SiteEditor = defineAsyncComponent({
   loader: () => import('@/views/sites/SiteEditor.vue'),
   delay: 200,
@@ -109,6 +114,7 @@ const weatherOpen = ref(false)
 const todoOpen = ref(false)
 const calendarOpen = ref(false)
 const hotOpen = ref(false)
+const worldTimeOpen = ref(false)
 /** panel-grid 工具卡点击触发的预览弹窗状态 */
 const previewWidget = ref(null)
 /** 预览弹窗最小化：弹窗隐藏，任务栏承接（widget 保留以便还原） */
@@ -155,6 +161,7 @@ const anyDialogOpen = computed(() =>
   todoOpen.value ||
   calendarOpen.value ||
   hotOpen.value ||
+  worldTimeOpen.value ||
   editorOpen.value ||
   (previewWidget.value !== null && !previewMinimized.value)
 )
@@ -460,6 +467,7 @@ async function handleRestored() {
           @open-todo="todoOpen = true"
           @open-calendar="calendarOpen = true"
           @open-hot="hotOpen = true"
+          @open-worldtime="worldTimeOpen = true"
         />
 
         <!-- 中间主体：所有rail-btn（home + 自定义）都显示在SiteGrid（功能一致） -->
@@ -513,6 +521,7 @@ async function handleRestored() {
     <TodoDialog v-model:open="todoOpen" />
     <CalendarDialog v-model:open="calendarOpen" />
     <HotDialog v-model:open="hotOpen" />
+    <WorldTimeDialog v-model:open="worldTimeOpen" />
     <WidgetPreviewDialog
       v-model:open="previewOpen"
       v-model:minimized="previewMinimized"
