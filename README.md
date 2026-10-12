@@ -63,7 +63,9 @@
 - 🛡️ **错误隔离**：每个弹窗独立错误边界，单组件崩溃不影响全局
 - 💡 **v-tip**：自研全局 tooltip 指令替代原生 title
 - 🌐 **API 收口**：所有对外网络地址只允许出现在 `src/config/api.js`（uapis 聚合接口 + picsum/Wallhaven/Nominatim/imsyy 备源）
+- 🛡️ **外链白名单**：新标签页跳转统一走 `utils/openExternal`，仅放行 http/https（防备份导入注入 `javascript:` 等伪协议）
 - 🖼️ **图标策略**：站点 favicon 直取目标站 `/favicon.ico`（失败回退字母头像）；引擎图标走 `@thesvg/icons` 懒加载独立分包
+- 🧹 **ESLint**：`npm run lint`（flat config + vue3 essential 档，只管正确性，不掺格式规则）
 
 ---
 
@@ -80,6 +82,9 @@ npm run dev
 
 # 构建生产版本
 npm run build
+
+# ESLint 检查
+npm run lint
 
 # 打包成 zip（输出到 ./release/）
 npm run build:zip
@@ -98,6 +103,7 @@ npm run preview
 | `npm run build` | 构建到 `dist/` |
 | `npm run build:zip` | 构建 + 打包为 `release/itabs-nav-v{version}-{时间戳}.zip` |
 | `npm run zip` | 仅打包 zip（dist 已存在时） |
+| `npm run lint` | ESLint 检查（src / scripts / vite.config.js） |
 | `npm run preview` | 本地预览构建产物 |
 
 ### zip 脚本选项
@@ -112,7 +118,7 @@ node scripts/zip.mjs --out=releases
 # → releases/itabs-nav-v0.1.0-20240310-1230.zip
 ```
 
-zip 文件**不含** dist 目录层，解压后直接是 `index.html` + `assets/`。
+zip 文件**不含** dist 目录层，解压后直接是 `index.html` + `favicon.ico` + `js/` + `css/` 等产物目录。
 
 ---
 
@@ -138,7 +144,7 @@ itabs-nav/
    │  └─ api.js                # 对外 API 唯一收口（uapis/热榜/一言/壁纸/Wallhaven/favicon/搜索引擎）
    ├─ data/
    │  └─ regions.js            # 地区数据
-   ├─ utils/                   # http / dailyCache / lunar / thesvg / fullscreenMixin
+   ├─ utils/                   # http / openExternal / dailyCache / lunar / thesvg / fullscreenMixin
    ├─ db/
    │  └─ index.js              # IndexedDB 数据层（sites/settings/todos/events/cache，v6；widgets 为旧版遗留表仅保留）
    ├─ stores/                  # Pinia（sites/settings/panels/todos/events/weather/hot/saying/ui）
@@ -160,8 +166,7 @@ itabs-nav/
       ├─ sites/                # SiteGrid / SiteCard / SiteContextMenu / SiteEditor / AddCardMenu
       ├─ dialogs/              # Weather / Todo / Calendar / Hot / WidgetPreview
       ├─ settings/             # SettingsPanel / SettingsGeneral / SettingsData / SettingsAbout
-       ├─ widgets/              # SplitTextPreview / EmailPreview / WallpaperPreview
-       └─ split/                # 文本分割工具（Panel/Input/Options/Output/Actions）
+      └─ widgets/              # SplitTextPreview / EmailPreview / WallpaperPreview
 ```
 
 ---
