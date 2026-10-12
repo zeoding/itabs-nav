@@ -7,7 +7,7 @@
  * - 工具卡点击：通过 emit('tool-click', widget) 通知父组件打开 WidgetPreviewDialog
  *   (site.kind ∈ TOOL_KINDS 时,SiteCard 会触发 action 事件;这里把 site 转为 widget 对象转发)
  */
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import SiteCard from '@/views/sites/SiteCard.vue'
 import SiteContextMenu from '@/views/sites/SiteContextMenu.vue'
 import AddCardMenu from '@/views/sites/AddCardMenu.vue'
@@ -99,9 +99,47 @@ function onCtxResize({ site, size }) {
 }
 
 const gridStyle = () => {
-  if (props.gridColumns === 'auto') return {}
-  return { gridTemplateColumns: `repeat(${props.gridColumns}, 1fr)` }
+  const base = {}
+  if (props.gridColumns !== 'auto') {
+    base.gridTemplateColumns = `repeat(${props.gridColumns}, 1fr)`
+  }
+  // 行高 = 列宽：每个单元格为正方形，6 种尺寸才能显示真实比例
+  // （首帧未测量时保持 auto，由内容撑高，RO 挂载后立即校正）
+  if (autoRows.value) base.gridAutoRows = `${autoRows.value}px`
+  return base
 }
+
+/**
+ * 方形网格：测量实际列宽写入 grid-auto-rows
+ * - 列宽是流式的（auto-fill + minmax(80px,1fr)，或设置里的固定列数），
+ *   只有行高跟随列宽，卡片 span 出来的尺寸才与「1x1/2x2」等标注一致
+ */
+const gridRef = ref(null)
+const autoRows = ref(null)
+let rowResizeObserver = null
+
+function measureRows() {
+  const el = gridRef.value
+  if (!el) return
+  const cols = getComputedStyle(el)
+    .gridTemplateColumns.split(' ')
+    .filter(Boolean)
+  const w = parseFloat(cols[0])
+  if (Number.isFinite(w) && w > 0) autoRows.value = Math.round(w)
+}
+
+watch(gridRef, (el, old) => {
+  if (old && rowResizeObserver) rowResizeObserver.unobserve(old)
+  if (el && rowResizeObserver) {
+    rowResizeObserver.observe(el)
+    measureRows()
+  }
+})
+// 列数设置变化（auto/4/5/6）会改变列宽，但 grid 元素尺寸不变，RO 不触发，需手动重测
+watch(
+  () => props.gridColumns,
+  () => nextTick(measureRows)
+)
 
 /** 根据 size 字符串返回 grid-column / row span */
 function spanOf(size) {
@@ -156,9 +194,15 @@ function onDocClick(e) {
 
 onMounted(() => {
   document.addEventListener('click', onDocClick, true)
+  rowResizeObserver = new ResizeObserver(measureRows)
+  if (gridRef.value) {
+    rowResizeObserver.observe(gridRef.value)
+    measureRows()
+  }
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocClick, true)
+  rowResizeObserver?.disconnect()
 })
 
 /** 退出编辑主页模式（点击卡片非删除按钮区域触发） */
@@ -192,13 +236,13 @@ function onCardRemove(site) {
 <template>
   <div class="panel-grid-wrap">
     <template v-if="loading">
-      <div class="panel-grid" :style="gridStyle()">
+      <div ref="gridRef" class="panel-grid" :style="gridStyle()">
         <div v-for="n in 8" :key="n" class="skeleton glass"></div>
       </div>
     </template>
 
     <template v-else-if="sites.length">
-      <div class="panel-grid" :style="gridStyle()">
+      <div ref="gridRef" class="panel-grid" :style="gridStyle()">
         <SiteCard
           v-for="(site, index) in sites"
           :key="site.id"
@@ -282,8 +326,8 @@ function onCardRemove(site) {
 }
 
 .add-card {
-  width: 80px;
-  height: 100px;
+  width: 100%;
+  aspect-ratio: 1;
   padding: 10px 6px 8px;
   border-radius: 12px;
   background: transparent;
@@ -352,8 +396,8 @@ function onCardRemove(site) {
 
 /* 移动端样式见 src/styles/mobile.less */
 .skeleton {
-  width: 80px;
-  height: 80px;
+  width: 100%;
+  aspect-ratio: 1;
   border-radius: @radius-card;
   background: rgba(255, 255, 255, 0.45);
   animation: pulse 1.2s ease-in-out infinite;

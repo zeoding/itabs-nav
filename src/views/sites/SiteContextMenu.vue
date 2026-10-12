@@ -106,8 +106,27 @@ function doRemove() {
 }
 function doResize(size) {
   if (isTool.value) return
-  emit('resize', { site: props.site, size })
+  // 点当前尺寸 = 无变化，不再写库，仅关闭菜单
+  if (size !== currentSize.value) {
+    emit('resize', { site: props.site, size })
+  }
   emit('close')
+}
+
+/** 尺寸九宫格方向键导航（布局 3 列，顺序与 SITE_SIZES 一致） */
+function onSizeKeydown(e) {
+  if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return
+  e.preventDefault()
+  const btns = [...menuRef.value.querySelectorAll('.ctx-size')]
+  const idx = btns.indexOf(e.target.closest('.ctx-size'))
+  if (idx === -1) return
+  const cols = 3
+  let next = idx
+  if (e.key === 'ArrowRight') next = idx + 1
+  if (e.key === 'ArrowLeft') next = idx - 1
+  if (e.key === 'ArrowDown') next = idx + cols
+  if (e.key === 'ArrowUp') next = idx - cols
+  if (next >= 0 && next < btns.length) btns[next].focus()
 }
 
 function sizeShape(s) {
@@ -140,11 +159,12 @@ function sizeShape(s) {
 
           <div class="ctx-divider"></div>
           <div class="ctx-label">{{ $t('siteContextMenu.resize') }}</div>
-          <div class="ctx-sizes">
+          <div class="ctx-sizes" @keydown="onSizeKeydown">
             <button
               v-for="s in SITE_SIZES"
               :key="s"
               :class="['ctx-size', { active: s === currentSize }]"
+              :aria-pressed="s === currentSize"
               v-tip="SIZE_LABELS[s]"
               @click="doResize(s)"
             >

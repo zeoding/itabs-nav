@@ -175,18 +175,11 @@ function onRemoveClick(e) {
 </template>
 
 <style scoped lang="less">
-/* 尺寸参数混入：容器几何 + 60px 图标 + 名称排版（6 种尺寸同构，仅参数不同） */
-.site-size(@w, @h, @pad, @gap, @fs, @clamp, @ppad: 2px, @lh: 1.2) {
-  width: @w;
-  height: @h;
+/* 尺寸参数混入：容器撑满网格跨区（宽高不写死），仅调图标档位 + 名称排版 */
+.site-size(@icon, @pad, @gap, @fs, @clamp, @ppad: 2px, @lh: 1.2) {
+  --icon-size: @icon;
   padding: @pad;
   gap: @gap;
-
-  .site-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 12px;
-  }
 
   .site-name {
     font-size: @fs;
@@ -205,13 +198,18 @@ function onRemoveClick(e) {
 
 .site-card {
   position: relative;
+  /* 撑满网格跨区：真实宽高由 gridColumn/gridRow span + 方形行高（SiteGrid 测量）决定，
+     保证 1x1/2x2 等标注与视觉比例一致 */
+  width: 100%;
+  height: 100%;
+  --icon-size: 52px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 0;
-  border-radius: 0;
+  gap: 4px;
+  padding: 5px 4px;
+  border-radius: 12px;
   background: transparent;
   border: none;
   box-shadow: none;
@@ -223,17 +221,22 @@ function onRemoveClick(e) {
     transform: none;
   }
 
-  /* 非 1x1：填充玻璃背景 */
+  /* 非 1x1：主题玻璃底 + 主题文字色（原白色底配白字不可读） */
   &.with-bg {
-    background: rgba(255, 255, 255, 0.85);
+    background: var(--glass-bg);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.7);
-    box-shadow: 0 4px 16px rgba(31, 41, 55, 0.1);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
 
     &:hover {
-      background: rgba(255, 255, 255, 0.95);
+      background: color-mix(in srgb, var(--glass-bg) 90%, var(--glass-border));
       box-shadow: 0 8px 20px rgba(31, 41, 55, 0.16);
+    }
+
+    .site-name {
+      color: @text;
+      text-shadow: none;
     }
   }
 
@@ -253,13 +256,13 @@ function onRemoveClick(e) {
     cursor: default;
 
     &.with-bg {
-      /* 编辑模式下用更明显的玻璃背景，区别于 hover */
-      background: rgba(255, 255, 255, 0.92);
+      /* 编辑模式下玻璃底更实一点，区别于 hover（主题自适应） */
+      background: color-mix(in srgb, var(--glass-bg) 94%, #fff);
       box-shadow: 0 6px 18px rgba(31, 41, 55, 0.18);
     }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.98);
+      background: color-mix(in srgb, var(--glass-bg) 88%, #fff);
     }
   }
 }
@@ -344,39 +347,39 @@ function onRemoveClick(e) {
 
 /* ============================================================
    几何一致性原则
-   - 所有卡片内部：60×60 图标 + 名称（上下结构）
-   - 唯一变化的是「容器（卡片）」的大小比例
-   - grid 列宽 = 80，gap = 12
+   - 卡片宽高 = 网格跨区（行高由 SiteGrid 测量 = 列宽，单元格为正方形）
+   - 6 种尺寸只差图标档位 + 名称排版
+   - 1x1 即正方形，2x2 是其 2 倍，1x2/2x1/2x4/4x2 比例真实
    ============================================================ */
 
-/* 1x1：80×100，最小卡片（1 行 1 列） */
+/* 1x1：1 行 1 列（正方形） */
 .size-1x1 {
-  .site-size(80px, 100px, 10px 6px 8px, 6px, 11px, 1);
+  .site-size(52px, 5px 4px, 4px, 11px, 1);
 }
 
-/* 1x2：172×100，1 行 2 列 */
+/* 1x2：1 行 2 列（横） */
 .size-1x2 {
-  .site-size(172px, 100px, 10px 8px 8px, 6px, 12px, 1);
+  .site-size(56px, 5px 8px, 4px, 12px, 1);
 }
 
-/* 2x1：80×200，2 行 1 列 */
+/* 2x1：2 行 1 列（竖） */
 .size-2x1 {
-  .site-size(80px, 200px, 12px 6px, 8px, 12px, 2, 2px, 1.3);
+  .site-size(56px, 8px 4px, 6px, 12px, 2, 2px, 1.3);
 }
 
-/* 2x2：172×200，2 行 2 列 */
+/* 2x2：2 行 2 列（正方形） */
 .size-2x2 {
-  .site-size(172px, 200px, 18px 14px 14px, 12px, 14px, 2, 4px, 1.3);
+  .site-size(76px, 14px 10px, 8px, 14px, 2, 4px, 1.3);
 }
 
-/* 2x4：356×200，2 行 4 列（横长） */
+/* 2x4：2 行 4 列（横长） */
 .size-2x4 {
-  .site-size(356px, 200px, 20px 24px 16px, 14px, 16px, 2, 4px, 1.3);
+  .site-size(76px, 14px 16px, 10px, 15px, 2, 4px, 1.3);
 }
 
-/* 4x2：172×392，4 行 2 列（竖长） */
+/* 4x2：4 行 2 列（竖长） */
 .size-4x2 {
-  .site-size(172px, 392px, 26px 14px 20px, 14px, 16px, 3, 4px, 1.3);
+  .site-size(76px, 16px 10px, 10px, 15px, 3, 4px, 1.3);
 }
 
 .site-icon {
@@ -384,6 +387,9 @@ function onRemoveClick(e) {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 1px 3px rgba(31, 41, 55, 0.08);
   border: none;
@@ -412,7 +418,7 @@ function onRemoveClick(e) {
 }
 
 .site-letter {
-  font-size: 32px;
+  font-size: calc(var(--icon-size) * 0.55);
   font-weight: 700;
 
   /* emoji 图标(工具卡:split-text 等)
@@ -420,7 +426,7 @@ function onRemoveClick(e) {
        大字号 + 居中 + 轻投影
      - 不继承 .site-letter 的 700 字重(emoji 本身已是字形) */
   &.site-emoji {
-    font-size: 36px;
+    font-size: calc(var(--icon-size) * 0.62);
     font-weight: normal;
     line-height: 1;
     filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15));

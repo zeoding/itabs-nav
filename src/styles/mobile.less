@@ -13,12 +13,9 @@
        · 这里使用 !important 提升优先级覆盖组件 scoped 样式
    ============================================================ */
 
-/* 移动端卡片尺寸：容器几何 + 图标 + 名称字号（6 种尺寸同构，仅参数不同） */
-.m-card-size(@w, @h, @pad, @gap, @icon, @radius, @fs) {
-  width: @w !important;
-  height: @h !important;
-  padding: @pad !important;
-  gap: @gap !important;
+/* 移动端卡片覆盖：宽高交给网格跨区（行高=列宽，方形），只缩图标档位与文字字号 */
+.m-card-size(@icon, @radius, @fs) {
+  --icon-size: @icon !important;
 
   .site-icon {
     width: @icon !important;
@@ -35,33 +32,24 @@
    SiteCard 移动端尺寸
    ============================================================ */
 
-/* 平板/小屏 (≤768px) */
+/* 平板/小屏 (≤768px)：1x1 单元格 64px 方形 */
 @media (max-width: 768px) {
-  .size-1x1 { .m-card-size(64px, 80px, 8px 4px 6px, 4px, 48px, 10px, 10px); }
-  .size-1x2 { .m-card-size(140px, 80px, 8px 6px 6px, 4px, 48px, 10px, 11px); }
-  .size-2x1 { .m-card-size(64px, 168px, 10px 4px, 6px, 48px, 10px, 11px); }
-  .size-2x2 { .m-card-size(140px, 168px, 14px 10px 10px, 8px, 48px, 10px, 12px); }
-  .size-2x4 { .m-card-size(292px, 168px, 14px 18px 10px, 10px, 48px, 10px, 13px); }
-  .size-4x2 { .m-card-size(140px, 332px, 20px 10px 14px, 10px, 48px, 10px, 13px); }
+  .size-1x1 { .m-card-size(34px, 8px, 10px); }
+  .size-1x2 { .m-card-size(34px, 8px, 11px); }
+  .size-2x1 { .m-card-size(34px, 8px, 11px); }
+  .size-2x2 { .m-card-size(40px, 10px, 12px); }
+  .size-2x4 { .m-card-size(40px, 10px, 13px); }
+  .size-4x2 { .m-card-size(40px, 10px, 13px); }
 }
 
-/* 手机端 (≤480px) */
+/* 手机端 (≤480px)：1x1 单元格 56px 方形 */
 @media (max-width: 480px) {
-  .size-1x1 { .m-card-size(56px, 70px, 6px 2px 4px, 3px, 40px, 8px, 9px); }
-  .size-1x2 { .m-card-size(118px, 70px, 6px 4px 4px, 3px, 40px, 8px, 10px); }
-  .size-2x1 { .m-card-size(56px, 144px, 8px 2px, 4px, 40px, 8px, 10px); }
-  .size-2x2 { .m-card-size(118px, 144px, 10px 8px 8px, 6px, 40px, 8px, 11px); }
-  .size-2x4 { .m-card-size(244px, 144px, 10px 14px 8px, 8px, 40px, 8px, 12px); }
-  .size-4x2 { .m-card-size(118px, 288px, 16px 8px 12px, 8px, 40px, 8px, 12px); }
-
-  .site-letter {
-    font-size: 24px !important;
-  }
-
-  /* 工具卡 emoji 在移动端保持清晰可读 */
-  .site-letter.site-emoji {
-    font-size: 28px !important;
-  }
+  .size-1x1 { .m-card-size(28px, 8px, 9px); }
+  .size-1x2 { .m-card-size(28px, 8px, 10px); }
+  .size-2x1 { .m-card-size(28px, 8px, 10px); }
+  .size-2x2 { .m-card-size(36px, 10px, 11px); }
+  .size-2x4 { .m-card-size(36px, 10px, 12px); }
+  .size-4x2 { .m-card-size(36px, 10px, 12px); }
 }
 
 /* ============================================================
@@ -75,18 +63,11 @@
   }
 
   .add-card {
-    width: 64px !important;
-    height: 80px !important;
     padding: 8px 4px 6px !important;
 
     .add-label {
       font-size: 10px !important;
     }
-  }
-
-  .skeleton {
-    width: 64px !important;
-    height: 64px !important;
   }
 }
 
@@ -97,18 +78,11 @@
   }
 
   .add-card {
-    width: 56px !important;
-    height: 70px !important;
     padding: 6px 2px 4px !important;
 
     .add-label {
       font-size: 9px !important;
     }
-  }
-
-  .skeleton {
-    width: 56px !important;
-    height: 56px !important;
   }
 }
 
