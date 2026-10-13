@@ -139,6 +139,8 @@ const TOOL_TITLE_KEYS = {
   'split-text': 'widgets.splitText',
   'free-email': 'widgets.freeEmail',
   'wallpaper': 'widgets.wallpaper',
+  'week-report': 'widgets.weekReport',
+  'encode-decode': 'widgets.encodeDecode',
 }
 const previewTitle = computed(() => {
   const key = previewWidget.value?.key
@@ -349,6 +351,11 @@ const TOOL_PRESETS = {
     name: '周报统计',
     url: 'action:week-report',
     icon: '📊',
+  },
+  'encode-decode': {
+    name: '编码解码',
+    url: 'action:encode-decode',
+    icon: '🔐',
   },
 }
 

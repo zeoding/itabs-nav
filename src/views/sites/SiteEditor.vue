@@ -60,6 +60,7 @@ const WIDGETS = [
   { key: 'free-email', icon: '📫', category: 'tool', kind: 'free-email' },
   { key: 'wallpaper', icon: '🖼️', category: 'tool', kind: 'wallpaper' },
   { key: 'week-report', icon: '📊', category: 'tool', kind: 'week-report' },
+  { key: 'encode-decode', icon: '🔐', category: 'tool', kind: 'encode-decode' },
 ]
 
 /** 内置工具 widget 的字面量文案(暂不接入 i18n) */
@@ -79,6 +80,10 @@ const FALLBACK_WIDGET_TEXT = {
   'week-report': {
     title: '周报统计',
     desc: '上传周报 xlsx，按部门/变更类型统计并生成图表',
+  },
+  'encode-decode': {
+    title: '编码解码',
+    desc: 'Base64 / URL / Hex / 哈希 / AES / RSA 等编码与加解密',
   },
 }
 

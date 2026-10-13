@@ -461,6 +461,61 @@ export default {
     splitText: '文本分割',
     freeEmail: '免费邮箱',
     wallpaper: '壁纸库',
+    weekReport: '周报统计',
+    encodeDecode: '编码解码',
+  },
+
+  // 编码解码 / 加密解密小组件
+  encodeDecode: {
+    groups: {
+      encode: '编码解码',
+      classic: '古典密码',
+      hash: '哈希摘要',
+      sym: '对称加密',
+      asym: '非对称',
+    },
+    direction: '方向',
+    dir: {
+      encode: '编码',
+      decode: '解码',
+      hash: '哈希',
+    },
+    shift: '位移',
+    key: '密钥',
+    keyPlaceholder: '请输入密钥',
+    vigenereKey: '字母密钥',
+    ivPlaceholder: '请输入 IV（初始向量）',
+    ivEcbHint: 'ECB 模式无需 IV',
+    mode: '模式',
+    padding: '填充',
+    input: '输入',
+    output: '结果',
+    inputPlaceholder: '在此输入待处理内容…',
+    outputPlaceholder: '结果将实时显示在这里',
+    computing: '计算中…',
+    copied: '已复制到剪贴板',
+    copyFail: '复制失败，请检查浏览器权限',
+    copy: '复制',
+    swap: '结果转为输入',
+    clear: '清空',
+    currentDir: '当前：{d}',
+    rsa: {
+      action: '操作',
+      encrypt: '加密',
+      decrypt: '解密',
+      sign: '签名',
+      verify: '验签',
+      keygen: '生成密钥对',
+      bits: '密钥长度',
+      publicKey: '公钥 (PEM)',
+      privateKey: '私钥 (PEM)',
+      signature: '签名 (Base64)',
+      signatureHint: '请粘贴待验证的签名',
+      pemHint: '-----BEGIN ... KEY-----',
+      keyPairOut: '生成的密钥对',
+      verifyOk: '✅ 验签通过：签名有效',
+      verifyFail: '❌ 验签失败：签名不匹配',
+    },
   },
 
   // 编辑模式
@@ -468,7 +523,6 @@ export default {
     enter: '编辑主页',
     done: '完成',
   },
-
   // 时钟/问候
   clock: {
     greeting: {

@@ -146,6 +146,14 @@ export default defineConfig({
               priority: 20,
             },
             {
+              // 编码解码 widget 专用依赖（crypto-js）：
+              // 独立成块，避免被 widget-libs 的递归吸入规则带走，
+              // 否则打开编码工具会连带下载 echarts+xlsx（合计约 900KB）
+              name: 'crypto-libs',
+              test: /node_modules[\\/]crypto-js/,
+              priority: 25,
+            },
+            {
               name: 'vendor',
               test: /node_modules/,
               priority: 10,
