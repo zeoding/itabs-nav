@@ -147,14 +147,14 @@ const previewTitle = computed(() => {
   return (key && TOOL_TITLE_KEYS[key]) ? $t(TOOL_TITLE_KEYS[key]) : key || ''
 })
 
-/** 精简模式：只保留搜索引擎 */
-const minimalist = ref(false)
 /** 版本更新检查：随 App 根组件生命周期启停（启动首检 + 轮询 + 可见补检） */
 const { start: startUpdateCheck, stop: stopUpdateCheck } = useUpdateChecker()
-/** 飘雪开关 + 侧栏收起：统一走 ui store（IndexedDB 持久化） */
+/** 飘雪开关 + 侧栏收起 + 精简模式：统一走 ui store（IndexedDB 持久化，localStorage 同步镜像首绘） */
 const uiStore = useUiStore()
-const { snowOn, sidebarCollapsed } = storeToRefs(uiStore)
-const { toggleSnow, setSidebarCollapsed } = uiStore
+const { snowOn, sidebarCollapsed, minimalist } = storeToRefs(uiStore)
+const { toggleSnow, setSidebarCollapsed, toggleMinimalist } = uiStore
+/** 首屏门控：数据回填完成前禁用位移动画，异步纠正直接落位、不播放过渡，避免刷新闪跳 */
+const booted = ref(false)
 /** 右上 zone hover 状态（用全局 mousemove 监听，避免挡住弹窗） */
 const zoneHover = ref(false)
 /** 任意弹窗打开时，隐藏精简按钮（最小化到任务栏的不算打开） */
@@ -178,15 +178,13 @@ function onMouseMove(e) {
   }
 }
 
-function toggleMinimalist() {
-  minimalist.value = !minimalist.value
-}
 const editingSite = ref(null)
 
 /** 侧栏收起后布局回收（状态归 ui store，Sidebar 内切换） */
 
 onMounted(async () => {
-  await Promise.all([load(), loadSettings()])
+  await Promise.all([load(), loadSettings(), uiStore.waitReady()])
+  booted.value = true
   window.addEventListener('mousemove', onMouseMove)
   // 版本更新检查：启动延迟首检 + 轮询 + 可见补检（见 useUpdateChecker）
   startUpdateCheck()
@@ -391,18 +389,18 @@ async function handleReset() {
   await db.clearAll()
   // 重置种子标志：否则 seeded 已置位，清空后 load 不会重新播种默认首页
   sitesStore.resetSeed()
-  await Promise.all([load(), loadSettings()])
+  await Promise.all([load(), loadSettings(), uiStore.reload()])
   settingsOpen.value = false
 }
 
-/** 备份恢复后：重载站点与设置 */
+/** 备份恢复后：重载站点与设置（含精简模式等 UI 偏好） */
 async function handleRestored() {
-  await Promise.all([load(), loadSettings()])
+  await Promise.all([load(), loadSettings(), uiStore.reload()])
 }
 </script>
 
 <template>
-  <div :class="['app', { minimalist, 'sidebar-collapsed': sidebarCollapsed }]" :style="backgroundStyle">
+  <div :class="['app', { minimalist, 'sidebar-collapsed': sidebarCollapsed, 'is-booted': booted }]" :style="backgroundStyle">
     <!-- 右上快捷区：深浅切换 + 飘雪 + 壁纸刷新 + 精简切换（图标按钮，任何弹窗打开时自动隐藏） -->
     <div v-show="!anyDialogOpen" class="minimalist-zone">
       <button
@@ -596,6 +594,15 @@ async function handleRestored() {
   min-height: 100vh;
   contain: layout;
   transition: padding-left 0.28s ease;
+}
+
+/* 首屏回填完成前禁用过渡：IDB 异步纠正直接落位、不播放位移动画，避免刷新时闪跳 */
+.app:not(.is-booted) {
+  .searchbar-wrap,
+  .below-search,
+  .side-area {
+    transition: none !important;
+  }
 }
 
 .searchbar-wrap {
