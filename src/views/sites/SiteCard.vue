@@ -10,8 +10,8 @@
  *   - 工具卡 (kind ∈ TOOL_KINDS):   emit('action') 由父组件打开弹窗
  */
 import { computed, ref, watch, onMounted } from 'vue'
-import { isToolKind } from '@/db'
-import { loadEngineSvg, parseThesvgIcon } from '@/utils/thesvg'
+import { isToolKind } from '@/config/tools'
+import { loadEngineSvgCached, parseThesvgIcon } from '@/utils/thesvg'
 import { openExternal } from '@/utils/openExternal'
 
 const props = defineProps({
@@ -63,8 +63,11 @@ const iconIsEmoji = computed(() => {
   return !iconIsUrl.value
 })
 
-/** thesvg SVG 缓存（模块级，多卡片共享同一份） */
-const svgCache = new Map()
+/**
+ * thesvg SVG：走 utils/thesvg 的模块级缓存（多卡片/多组件共享同一份，
+ * 同一 slug 只 import 一次且在途请求合并）。异步返回时 icon 可能已变化，
+ * 仅当 slug 仍一致才写入。
+ */
 const svgHtml = ref('')
 async function loadSvg() {
   const slug = thesvgSlug.value
@@ -72,15 +75,7 @@ async function loadSvg() {
     svgHtml.value = ''
     return
   }
-  if (svgCache.has(slug)) {
-    svgHtml.value = svgCache.get(slug)
-    return
-  }
-  svgCache.set(slug, '')
-  const svg = await loadEngineSvg(slug)
-  const html = svg || ''
-  svgCache.set(slug, html)
-  // 异步返回时 icon 可能已变化，仅当 slug 仍一致才写入
+  const html = await loadEngineSvgCached(slug)
   if (thesvgSlug.value === slug) svgHtml.value = html
 }
 onMounted(loadSvg)

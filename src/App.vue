@@ -74,7 +74,7 @@ import { setLanguage, $t } from '@/composables/useI18n'
 import { useUpdateChecker } from '@/composables/useUpdateChecker'
 import { storeToRefs } from 'pinia'
 import * as db from '@/db'
-import { TOOL_KINDS } from '@/db'
+import { TOOL_KINDS, TOOLS_BY_KIND, toolActionUrl } from '@/config/tools'
 
 const sitesStore = useSitesStore()
 const { sites, loading, currentPanel } = storeToRefs(sitesStore)
@@ -135,17 +135,10 @@ const taskbarVisible = computed(
   () => previewWidget.value !== null && previewMinimized.value
 )
 /** 任务栏窗口标题（与 WidgetPreviewDialog 内文案保持一致；走 i18n，随语言切换更新） */
-const TOOL_TITLE_KEYS = {
-  'split-text': 'widgets.splitText',
-  'free-email': 'widgets.freeEmail',
-  'wallpaper': 'widgets.wallpaper',
-  'week-report': 'widgets.weekReport',
-  'encode-decode': 'widgets.encodeDecode',
-  'qr-code': 'widgets.qrCode',
-}
 const previewTitle = computed(() => {
-  const key = previewWidget.value?.key
-  return (key && TOOL_TITLE_KEYS[key]) ? $t(TOOL_TITLE_KEYS[key]) : key || ''
+  const kind = previewWidget.value?.key
+  const tool = kind ? TOOLS_BY_KIND[kind] : null
+  return tool ? $t(tool.titleKey) : kind || ''
 })
 
 /** 版本更新检查：随 App 根组件生命周期启停（启动首检 + 轮询 + 可见补检） */
@@ -323,57 +316,19 @@ async function handleResize({ site, size }) {
  * - 默认 size '1x1',与普通站点卡一致
  * - 同面板已有同 kind 卡片则不重复添加(避免重复占位)
  *
- * 新增工具时:
- *  1. 在 db.TOOL_KINDS 追加 kind
- *  2. 在下面 TOOL_PRESETS 加一条 preset(name/url/icon)
- *  3. 在 SiteEditor 的 WIDGETS 加一项 kind === <new>
+ * 工具元数据（name/icon/url 等）统一见 @/config/tools，新增工具只需改那一处
  */
-const TOOL_PRESETS = {
-  'split-text': {
-    name: '文本分割',
-    url: 'action:split-text',
-    // 使用与 SiteEditor.WIDGETS 中 split-text 一致的 emoji,
-    // 让工具卡片在 panel-grid 中的图标与「添加站点」弹窗里的小组件图标保持一致
-    icon: '✂️',
-  },
-  'free-email': {
-    name: '免费邮箱',
-    url: 'action:free-email',
-    icon: '📫',
-  },
-  'wallpaper': {
-    name: '壁纸库',
-    url: 'action:wallpaper',
-    icon: '🖼️',
-  },
-  'week-report': {
-    name: '周报统计',
-    url: 'action:week-report',
-    icon: '📊',
-  },
-  'encode-decode': {
-    name: '编码解码',
-    url: 'action:encode-decode',
-    icon: '🔐',
-  },
-  'qr-code': {
-    name: '二维码',
-    url: 'action:qr-code',
-    icon: '🏁',
-  },
-}
-
 async function handleAddTool(tool) {
-  if (!TOOL_KINDS.includes(tool)) return
+  const preset = TOOLS_BY_KIND[tool]
+  if (!preset || !TOOL_KINDS.includes(tool)) return
   const exists = sites.value.some((s) => s.kind === tool)
   if (exists) {
-    console.info(`[App] 当前面板已存在「${TOOL_PRESETS[tool].name}」卡片,无需重复添加`)
+    console.info(`[App] 当前面板已存在「${preset.name}」卡片,无需重复添加`)
     return
   }
-  const preset = TOOL_PRESETS[tool]
   await add({
     name: preset.name,
-    url: preset.url,
+    url: toolActionUrl(tool),
     icon: preset.icon,
     size: '1x1',
     kind: tool,

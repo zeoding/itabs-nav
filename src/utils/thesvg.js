@@ -109,3 +109,23 @@ export async function loadEngineSvg(slug) {
     return null
   }
 }
+
+/**
+ * 带缓存的 SVG 加载（模块级 single-flight）
+ * - 同一 slug 只 import 一次，且在途请求共享同一 Promise，避免并发重复加载
+ * - 结果缓存为字符串（缺失/失败统一为 ''），供 v-html 直接渲染
+ * - 所有卡片/引擎选择器共享这一份缓存（原 SiteCard 内的 Map 是实例级，等于没缓存）
+ * @param {string} slug
+ * @returns {Promise<string>} SVG 字符串，失败/缺失返回 ''
+ */
+const svgCache = new Map()
+export function loadEngineSvgCached(slug) {
+  if (!slug) return Promise.resolve('')
+  if (!svgCache.has(slug)) {
+    const p = loadEngineSvg(slug)
+      .then((svg) => svg || '')
+      .catch(() => '')
+    svgCache.set(slug, p)
+  }
+  return svgCache.get(slug)
+}

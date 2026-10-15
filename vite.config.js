@@ -102,7 +102,7 @@ export default defineConfig({
     assetsDir: 'assets',
     // 关闭 source map（生产包不需；调试可用 sourcemap=true 临时开启）
     sourcemap: false,
-    // 关闭清空选项：让外部脚本可同步产物；如需每次重建可打开 emptyOutDir
+    // 每次构建前清空 dist，避免旧 hash 产物残留
     emptyOutDir: true,
     // 提醒：分包粒度（widget-libs 单块 ~900KB 为 echarts+xlsx 懒加载重依赖，已知可控）
     chunkSizeWarningLimit: 1000,
@@ -166,8 +166,12 @@ export default defineConfig({
               priority: 10,
             },
             {
+              // 弹窗/编辑器类懒加载 chunk 的统一归集。
+              // 注意：WidgetPreviewDialog 必须列在这里 —— 它内部静态引入了全部
+              // widget 预览组件，是 dialogs 块体积的主要来源；漏掉它会落进 vendor
+              // 兜底块，与首屏依赖混包并失去独立缓存。
               name: 'dialogs',
-              test: /(TodoDialog|CalendarDialog|WeatherDialog|HotDialog|EngineEditor|SettingsPanel|SiteEditor|ConfirmHost)/,
+              test: /(TodoDialog|CalendarDialog|WeatherDialog|HotDialog|WorldTimeDialog|WidgetPreviewDialog|EngineEditor|SettingsPanel|SiteEditor|ConfirmHost)/,
               priority: 20,
             },
             {

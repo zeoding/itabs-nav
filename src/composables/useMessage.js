@@ -18,6 +18,16 @@ const DEFAULT_DURATION = 2200
 // 全局状态（模块级单例）
 const queue = ref([])
 let nextId = 1
+/** 定时器放独立 Map（不挂到 reactive item 上，避免无谓响应式） */
+const timers = new Map()
+
+function clearTimer(id) {
+  const t = timers.get(id)
+  if (t) {
+    clearTimeout(t)
+    timers.delete(id)
+  }
+}
 
 function push(type, content, duration = DEFAULT_DURATION) {
   const id = nextId++
@@ -32,12 +42,12 @@ function push(type, content, duration = DEFAULT_DURATION) {
   // 超出上限：移除最早的
   while (queue.value.length > MAX_VISIBLE) {
     const first = queue.value.shift()
-    if (first) clearTimeout(first._timer)
+    if (first) clearTimer(first.id)
   }
   // 自动消失
-  item._timer = setTimeout(() => {
+  timers.set(id, setTimeout(() => {
     remove(id)
-  }, duration)
+  }, duration))
   return id
 }
 
@@ -46,7 +56,7 @@ function remove(id) {
   if (idx < 0) return
   const item = queue.value[idx]
   if (!item) return
-  clearTimeout(item._timer)
+  clearTimer(id)
   // 先标记 leaving 触发淡出动画，再移除
   item.leaving = true
   setTimeout(() => {

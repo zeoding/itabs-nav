@@ -1,5 +1,6 @@
 import Dexie from 'dexie'
 import { $t } from '@/composables/useI18n'
+import { TOOL_KINDS } from '@/config/tools'
 
 /**
  * IndexedDB 数据层（基于 Dexie 封装）
@@ -39,21 +40,17 @@ export const DEFAULT_SITE_SIZE = '1x1'
  *  - 'qr-code'    内置工具:二维码生成/解码(点击打开弹窗)
  * 其它取值保留向后兼容:旧数据读不到 kind 时回退到 'web'
  */
-export const SITE_KINDS = ['web', 'split-text', 'free-email', 'wallpaper', 'week-report', 'encode-decode', 'qr-code']
-export const DEFAULT_SITE_KIND = 'web'
-
 /**
- * 工具卡 kind 集合(点击行为不同于普通网址类站点)
- *  - 普通网址类站点:点击 -> window.open(url)
- *  - 工具卡片类站点:点击 -> emit('action') 由父组件打开对应弹窗
- * 新增工具类时只需在此数组里追加 kind 即可,SiteCard 会自动识别
+ * 工具卡 kind 集合（单一真相源见 @/config/tools TOOLS）
+ * - 普通网址类站点：点击 → openExternal(url)
+ * - 工具卡片类站点：点击 → emit('action') 由父组件打开对应弹窗
+ *
+ * 分层约定：db 只「消费」TOOL_KINDS 做写入校验（保证落库的 kind 合法），
+ * 不对外 re-export，也不定义 isToolKind —— 判定逻辑属业务语义，归 @/config/tools。
+ * 需要的调用方请直接从 `@/config/tools` 引入。
  */
-export const TOOL_KINDS = ['split-text', 'free-email', 'wallpaper', 'week-report', 'encode-decode', 'qr-code']
-
-/** 判定某个 kind 是否为工具卡 */
-export function isToolKind(kind) {
-  return TOOL_KINDS.includes(kind)
-}
+export const SITE_KINDS = ['web', ...TOOL_KINDS]
+export const DEFAULT_SITE_KIND = 'web'
 
 let dbInstance = null
 
@@ -158,13 +155,30 @@ export async function getAllSites() {
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 }
 
+/**
+ * 按主键读单条站点（含默认值补全）
+ * 供 store 在新增后回填单条记录，避免为此重读整表。
+ */
+export async function getSite(id) {
+  const db = getDB()
+  const row = await db.table('sites').get(id)
+  return row ? fillDefaults(row) : null
+}
+
 /** 删除整个面板（含其下所有站点） */
 export async function clearPanel(panel) {
   const db = getDB()
+  const p = panel || 'home'
   await db.transaction('rw', 'sites', async () => {
-    const all = await db.table('sites').toArray()
-    const targets = all.filter((s) => (s.panel || 'home') === panel)
-    await Promise.all(targets.map((s) => db.table('sites').delete(s.id)))
+    const table = db.table('sites')
+    // 常规路径：走 panel 索引取主键，避免全表载入（v3 起 panel 已建索引）
+    const ids = await table.where('panel').equals(p).primaryKeys()
+    // 兼容无 panel 字段的极老数据（fillDefaults 视其为 'home'，索引匹配不到）
+    if (p === 'home') {
+      const legacy = await table.filter((s) => !s.panel).primaryKeys()
+      ids.push(...legacy)
+    }
+    await table.bulkDelete(ids)
   })
 }
 
@@ -204,13 +218,10 @@ export async function deleteSite(id) {
  */
 export async function reorderSites(orderedSites) {
   const db = getDB()
-  await db.transaction('rw', 'sites', async () => {
-    await Promise.all(
-      orderedSites.map((site, index) =>
-        db.table('sites').put(toPlain(fillDefaults({ ...site, order: index + 1 })))
-      )
-    )
-  })
+  const rows = orderedSites.map((site, index) =>
+    toPlain(fillDefaults({ ...site, order: index + 1 }))
+  )
+  await db.table('sites').bulkPut(rows)
 }
 
 /**
@@ -225,14 +236,24 @@ async function getMaxOrder(db) {
 
 /* ---------------- 设置 key-value ---------------- */
 
-export async function getSetting(key, fallback = undefined) {
+const NO_FALLBACK = Symbol('no-fallback')
+
+export async function getSetting(key, fallback = NO_FALLBACK) {
   const db = getDB()
   const row = await db.table('settings').get(key)
-  // 区分"未传 fallback"和"传了 null"：使用 sentinel。
-  // migrateSetting 用 getSetting(key, undefined) 探测是否存在，传 null 时表示"没找到就当 null"。
-  const hasFallback = arguments.length > 1
+  // 用 sentinel 区分"未传 fallback"（返回 null）与"显式传了 undefined/null"：
+  // migrateSetting 用 getSetting(key, undefined) 探测键是否存在。
   if (row) return row.value
-  return hasFallback ? fallback : null
+  return fallback === NO_FALLBACK ? null : fallback
+}
+
+/**
+ * 一次性读取全部 settings 行（[{ key, value }]）
+ * 供 settings store 首屏加载，避免按 key 逐条 getSetting 的多次 IDB 往返
+ */
+export async function getAllSettings() {
+  const db = getDB()
+  return db.table('settings').toArray()
 }
 
 export async function setSetting(key, value) {
@@ -310,6 +331,19 @@ export async function getDeletedTodos() {
 }
 
 /**
+ * 一次读取 todos 表并拆分 active/deleted
+ * - 避免 getAllTodos + getDeletedTodos 各自全表 toArray 的重复扫描
+ */
+export async function getTodosSplit() {
+  const db = getDB()
+  const all = await db.table('todos').toArray()
+  return {
+    active: all.filter((t) => !t.deleted).sort(sortByOrderThenCreated),
+    deleted: all.filter((t) => t.deleted).sort((a, b) => (b.deletedAt ?? b.createdAt ?? 0) - (a.deletedAt ?? a.createdAt ?? 0)),
+  }
+}
+
+/**
  * 排序：优先按显式 order，缺字段回退到 createdAt（稳定排序）
  */
 function sortByOrderThenCreated(a, b) {
@@ -331,6 +365,12 @@ export async function addTodo({ text }) {
     deleted: false,
     createdAt: Date.now(),
   }))
+}
+
+/** 按主键读单条待办（供 store 新增后回填，避免重读整表） */
+export async function getTodo(id) {
+  const db = getDB()
+  return db.table('todos').get(id)
 }
 
 export async function updateTodo(todo) {
@@ -377,15 +417,43 @@ export async function setTodosDone(ids, done) {
   if (!ids || ids.length === 0) return
   const db = getDB()
   await db.transaction('rw', 'todos', async () => {
-    await Promise.all(
-      ids.map(async (id) => {
-        const row = await db.table('todos').get(id)
-        if (!row) return
-        row.done = !!done
-        await db.table('todos').put(toPlain(row))
-      })
-    )
+    const table = db.table('todos')
+    const rows = await Promise.all(ids.map((id) => table.get(id)))
+    const next = rows
+      .filter(Boolean)
+      .map((row) => toPlain({ ...row, done: !!done }))
+    await table.bulkPut(next)
   })
+}
+
+/**
+ * 批量软删除 / 恢复（deleted 标记）
+ * - 单事务内完成，替代 store 侧 N 次独立事务 + 全表重读
+ * - deleted=true 时写 deletedAt 时间戳；恢复时清空
+ */
+export async function setTodosDeleted(ids, deleted) {
+  if (!ids || ids.length === 0) return
+  const db = getDB()
+  await db.transaction('rw', 'todos', async () => {
+    const table = db.table('todos')
+    const rows = await Promise.all(ids.map((id) => table.get(id)))
+    const stamp = Date.now()
+    const next = rows
+      .filter(Boolean)
+      .map((row) => toPlain({
+        ...row,
+        deleted: !!deleted,
+        deletedAt: deleted ? stamp : null,
+      }))
+    await table.bulkPut(next)
+  })
+}
+
+/** 批量永久删除（清空回收站 / 多选彻底删除） */
+export async function purgeTodos(ids) {
+  if (!ids || ids.length === 0) return
+  const db = getDB()
+  await db.table('todos').bulkDelete(ids)
 }
 
 /**
@@ -395,13 +463,8 @@ export async function setTodosDone(ids, done) {
  */
 export async function reorderTodos(orderedTodos) {
   const db = getDB()
-  await db.transaction('rw', 'todos', async () => {
-    await Promise.all(
-      orderedTodos.map((todo, index) =>
-        db.table('todos').put(toPlain({ ...todo, order: index }))
-      )
-    )
-  })
+  const rows = orderedTodos.map((todo, index) => toPlain({ ...todo, order: index }))
+  await db.table('todos').bulkPut(rows)
 }
 
 /* ---------------- 日程事件（只读：日历点标展示；写链路已移除，见 stores/events.js） ---------------- */
@@ -468,10 +531,10 @@ export async function importBackup(payload) {
   await db.transaction('rw', storeNames, async () => {
     await Promise.all(storeNames.map((n) => db.table(n).clear()))
     await Promise.all([
-      ...sites.map((s) => db.table('sites').put(s)),
-      ...settings.map((s) => db.table('settings').put(s)),
-      ...todos.map((t) => db.table('todos').put(t)),
-      ...events.map((e) => db.table('events').put(e)),
+      db.table('sites').bulkPut(sites),
+      db.table('settings').bulkPut(settings),
+      db.table('todos').bulkPut(todos),
+      db.table('events').bulkPut(events),
     ])
   })
 }

@@ -9,15 +9,24 @@
  *         emit('add-tool', 'split-text') → 父组件写入当前面板站点(1x1)
  * - 支持全屏放大
  */
-import { ref, watch, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, computed, nextTick, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import BaseDialog from '@/components/BaseDialog.vue'
 import { $t } from '@/composables/useI18n'
 import { useMessage } from '@/composables/useMessage'
 import { useEscapeClose } from '@/composables/useEscapeClose'
-import { TOOL_KINDS } from '@/db'
+import { TOOL_KINDS, TOOLS, TOOLS_BY_KIND } from '@/config/tools'
 import { FAVICON_API } from '@/config/api'
 import { loadEngineSvg, THESVG_PREFIX, SITE_ICON_PRESETS } from '@/utils/thesvg'
-import WidgetPreviewDialog from '@/views/dialogs/WidgetPreviewDialog.vue'
+/**
+ * 小组件预览弹窗：懒加载
+ * - 该弹窗内部静态引入了全部 widget 预览组件（SplitText/Email/Wallpaper/...），
+ *   若此处静态 import，会把整棵预览组件树并进 SiteEditor 的 chunk，
+ *   导致「添加站点」时连带下载所有 widget（实测 dialogs chunk 膨胀到 ~290KB）。
+ * - 改为 defineAsyncComponent 后，只有用户真正点击 widget 卡片时才下载该 chunk。
+ */
+const WidgetPreviewDialog = defineAsyncComponent(() =>
+  import('@/views/dialogs/WidgetPreviewDialog.vue')
+)
 import {
   RiGlobalLine,
   RiDashboardLine,
@@ -48,58 +57,24 @@ const visibleTabs = computed(() => {
 
 /* ---------------- widgets ---------------- */
 /**
- * 卡片结构：
- *  - key:       唯一键
- *  - icon:      emoji 图标
- *  - kind:      可选。内置工具类 widget('split-text')，点击「添加」走真实写入
- *
- * 当前仅保留内置工具类 widget（split-text），其它 mock widget 已移除
+ * 卡片结构（由 @/config/tools 的 TOOLS 派生）：
+ *  - key:  唯一键（= kind）
+ *  - icon: emoji 图标
+ *  - kind: 内置工具类 widget，点击「添加」走真实写入（kind ∈ TOOL_KINDS）
  */
-const WIDGETS = [
-  { key: 'split-text', icon: '✂️', category: 'tool', kind: 'split-text' },
-  { key: 'free-email', icon: '📫', category: 'tool', kind: 'free-email' },
-  { key: 'wallpaper', icon: '🖼️', category: 'tool', kind: 'wallpaper' },
-  { key: 'week-report', icon: '📊', category: 'tool', kind: 'week-report' },
-  { key: 'encode-decode', icon: '🔐', category: 'tool', kind: 'encode-decode' },
-  { key: 'qr-code', icon: '🏁', category: 'tool', kind: 'qr-code' },
-]
+const WIDGETS = TOOLS.map((t) => ({
+  key: t.kind,
+  icon: t.icon,
+  category: t.category,
+  kind: t.kind,
+}))
 
-/** 内置工具 widget 的字面量文案(暂不接入 i18n) */
-const FALLBACK_WIDGET_TEXT = {
-  'split-text': {
-    title: '文本分割',
-    desc: '按分隔符拆分 / 去重 / 分组 / 导出 xlsx',
-  },
-  'free-email': {
-    title: '免费邮箱',
-    desc: '基于 duckmail.sbs 的临时邮箱，接收验证码/通知',
-  },
-  'wallpaper': {
-    title: '壁纸库',
-    desc: 'Wallhaven 精选壁纸：搜索 / 预览 / 一键设为桌面壁纸',
-  },
-  'week-report': {
-    title: '周报统计',
-    desc: '上传周报 xlsx，按部门/变更类型统计并生成图表',
-  },
-  'encode-decode': {
-    title: '编码解码',
-    desc: 'Base64 / URL / Hex / 哈希 / AES / RSA 等编码与加解密',
-  },
-  'qr-code': {
-    title: '二维码',
-    desc: '生成二维码（可下载）／识别图片中的二维码',
-  },
-}
-
-/** widget 展示文案：内置工具走兜底字面量 */
+/** widget 展示文案：统一取自 @/config/tools */
 function wTitle(w) {
-  if (FALLBACK_WIDGET_TEXT[w.key]) return FALLBACK_WIDGET_TEXT[w.key].title
-  return ''
+  return TOOLS_BY_KIND[w.key]?.name || ''
 }
 function wDesc(w) {
-  if (FALLBACK_WIDGET_TEXT[w.key]) return FALLBACK_WIDGET_TEXT[w.key].desc
-  return ''
+  return TOOLS_BY_KIND[w.key]?.desc || ''
 }
 
 /* 当前 WIDGETS 仅含内置工具类,直接透传,无需搜索/分类过滤 */

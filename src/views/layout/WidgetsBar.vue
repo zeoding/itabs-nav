@@ -255,7 +255,6 @@ onUnmounted(() => {
   justify-content: center;
   min-height: 96px;
   text-align: left;
-  border: none;
   cursor: default;
   color: #fff;
   position: relative;

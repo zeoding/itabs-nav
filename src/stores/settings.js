@@ -134,20 +134,23 @@ export const useSettingsStore = defineStore('settings', () => {
   })
 
   async function load() {
-    const entries = await Promise.all(
-      Object.keys(DEFAULTS).map(async (key) => {
-        const value = await db.getSetting(key, DEFAULTS[key])
-        return [key, value]
-      })
-    )
-    settings.value = Object.fromEntries(entries)
+    // 一次性读全表再合并，避免按 key 逐条 getSetting 的多次 IDB 往返
+    const rows = await db.getAllSettings()
+    const stored = new Map(rows.map((r) => [r.key, r.value]))
+    const next = {}
+    for (const key of Object.keys(DEFAULTS)) {
+      // 区分"存过 null"与"没存过"：存过则用存储值，否则回退默认
+      next[key] = stored.has(key) ? stored.get(key) : DEFAULTS[key]
+    }
+    settings.value = next
     applyThemeColor()
     applyTheme()
     scheduleWallpaperTimer()
   }
 
   async function set(key, value) {
-    settings.value = { ...settings.value, [key]: value }
+    // 直接改属性，避免整体替换对象导致所有依赖 settings 的计算属性重算
+    settings.value[key] = value
     await db.setSetting(key, value)
     if (key === 'themeColor') applyThemeColor()
     if (key === 'themeMode') applyTheme()

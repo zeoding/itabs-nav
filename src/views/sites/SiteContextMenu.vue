@@ -1,7 +1,8 @@
 <script setup>
 
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
-import { SITE_SIZES, isToolKind } from '@/db'
+import { SITE_SIZES } from '@/db'
+import { isToolKind } from '@/config/tools'
 import { RiEditLine, RiDeleteBinLine } from '@remixicon/vue'
 
 const props = defineProps({
@@ -15,7 +16,7 @@ const emit = defineEmits(['close', 'edit', 'remove', 'resize'])
  * 是否为内置工具卡（如文本分割）
  *  - 工具卡暂不开放「编辑 / 调整大小」菜单项(避免误改 url/kind),
  *    只保留「删除」作为出口
- *  - 判定走 db.isToolKind:kind 在 TOOL_KINDS 列表里的都视为工具卡
+ *  - 判定走 isToolKind(@/config/tools):kind 在 TOOL_KINDS 列表里的都视为工具卡
  */
 const isTool = computed(() => isToolKind(props.site?.kind))
 

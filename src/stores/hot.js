@@ -5,63 +5,31 @@ import { HOT_API } from '@/config/api'
 import { getLanguage } from '@/composables/useI18n'
 import { getDaily, getAny, setDaily } from '@/utils/dailyCache'
 
-/** 热榜源配置 */
-const SOURCES = {
-  baidu: {
-    key: 'baidu',
-    name: HOT_API.sources.baidu.name,
-    color: HOT_API.sources.baidu.color,
-    endpoints: [
-      { ...HOT_API.endpoints.uapis, url: HOT_API.endpoints.uapis.url('baidu') },
-      { ...HOT_API.endpoints.imsyy, url: HOT_API.endpoints.imsyy.url('baidu') },
-    ],
-  },
-  weibo: {
-    key: 'weibo',
-    name: HOT_API.sources.weibo.name,
-    color: HOT_API.sources.weibo.color,
-    endpoints: [
-      { ...HOT_API.endpoints.uapis, url: HOT_API.endpoints.uapis.url('weibo') },
-      { ...HOT_API.endpoints.imsyy, url: HOT_API.endpoints.imsyy.url('weibo') },
-    ],
-  },
-  zhihu: {
-    key: 'zhihu',
-    name: HOT_API.sources.zhihu.name,
-    color: HOT_API.sources.zhihu.color,
-    endpoints: [
-      { ...HOT_API.endpoints.uapis, url: HOT_API.endpoints.uapis.url('zhihu') },
-      { ...HOT_API.endpoints.imsyy, url: HOT_API.endpoints.imsyy.url('zhihu') },
-    ],
-  },
-  douyin: {
-    key: 'douyin',
-    name: HOT_API.sources.douyin.name,
-    color: HOT_API.sources.douyin.color,
-    endpoints: [
-      { ...HOT_API.endpoints.uapis, url: HOT_API.endpoints.uapis.url('douyin') },
-      { ...HOT_API.endpoints.imsyy, url: HOT_API.endpoints.imsyy.url('douyin') },
-    ],
-  },
-  bilibili: {
-    key: 'bilibili',
-    name: HOT_API.sources.bilibili.name,
-    color: HOT_API.sources.bilibili.color,
-    endpoints: [
-      { ...HOT_API.endpoints.uapis, url: HOT_API.endpoints.uapis.url('bilibili') },
-      { ...HOT_API.endpoints.imsyy, url: HOT_API.endpoints.imsyy.url('bilibili') },
-    ],
-  },
-}
+/**
+ * 热榜源配置
+ * - 结构完全同构（每个源都是「uapis 主源 + imsyy 备源」），由 HOT_API.sources 派生，
+ *   新增热榜源只需在 config/api.js 的 HOT_API.sources 加一行
+ * - endpoints 按优先级排列，load() 依次尝试直到解析出非空列表
+ */
+const ENDPOINT_BUILDERS = [
+  { parser: 'uapis', url: (type) => HOT_API.endpoints.uapis.url(type) },
+  { parser: 'imsyy', url: (type) => HOT_API.endpoints.imsyy.url(type) },
+]
 
-/** 全部失败时使用空数据 */
-const FALLBACK = {
-  baidu: [],
-  weibo: [],
-  zhihu: [],
-  douyin: [],
-  bilibili: [],
-}
+const SOURCES = Object.fromEntries(
+  Object.entries(HOT_API.sources).map(([key, meta]) => [
+    key,
+    {
+      key,
+      name: meta.name,
+      color: meta.color,
+      endpoints: ENDPOINT_BUILDERS.map(({ parser, url }) => ({ parser, url: url(key) })),
+    },
+  ])
+)
+
+/** 全部失败时使用空数据（按源 key 生成，避免手工枚举漂移） */
+const FALLBACK = Object.fromEntries(Object.keys(HOT_API.sources).map((k) => [k, []]))
 
 function parseVvhan(json) {
   if (!json || !json.success || !Array.isArray(json.data)) return null
@@ -211,12 +179,15 @@ export const useHotStore = defineStore('hot', () => {
       }
     }
 
+    /** 兜底命中的缓存时间（复用同一次读，避免下面再查一遍 IDB） */
+    let staleSavedAt = null
     if (!result) {
       const stale = await getAny(hotCacheKey(source))
       if (stale && Array.isArray(stale.payload?.items) && stale.payload.items.length) {
         result = stale.payload.items
         currentEndpoint.value = stale.payload.endpoint || null
         fromCache.value = true
+        staleSavedAt = stale.savedAt || null
       } else {
         console.warn(`[hot] ${source} 所有端点失败，使用兜底数据`)
         result = FALLBACK[source] || []
@@ -235,9 +206,8 @@ export const useHotStore = defineStore('hot', () => {
     loading.value = false
     if (result && !usedFallback.value) {
       await setDaily(hotCacheKey(source), { items, endpoint: currentEndpoint.value })
-    } else if (result && usedFallback.value && fromCache.value) {
-      const stale = await getAny(hotCacheKey(source))
-      if (stale?.savedAt) lastUpdated.value = new Date(stale.savedAt)
+    } else if (result && usedFallback.value && fromCache.value && staleSavedAt) {
+      lastUpdated.value = new Date(staleSavedAt)
     }
     return items
   }

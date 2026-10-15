@@ -15,32 +15,54 @@ const options = ref({
   cancelText: $t('confirm.cancel'),
   danger: false,
 })
+/** 当前待应答请求的 resolver */
 let resolver = null
+/**
+ * 并发请求队列：确认框是单例，若同一时刻发起多个 confirm()，
+ * 旧实现会直接覆盖 resolver 导致前一个 Promise 永不 resolve（泄漏）。
+ * 改为排队，前一个应答后再展示下一个。
+ */
+const queue = []
+
+function showNext() {
+  const req = queue.shift()
+  if (!req) {
+    resolver = null
+    visible.value = false
+    return
+  }
+  resolver = req.resolve
+  options.value = req.options
+  visible.value = true
+}
+
+function finish(value) {
+  const resolve = resolver
+  resolver = null
+  if (resolve) resolve(value)
+  showNext()
+}
 
 export function useConfirm() {
   function confirm(opts = {}) {
-    options.value = {
+    const normalized = {
       title: opts.title || $t('confirm.title'),
       message: opts.message || '',
       okText: opts.okText || $t('confirm.ok'),
       cancelText: opts.cancelText || $t('confirm.cancel'),
       danger: !!opts.danger,
     }
-    visible.value = true
     return new Promise((resolve) => {
-      resolver = resolve
+      queue.push({ options: normalized, resolve })
+      if (!visible.value && !resolver) showNext()
     })
   }
 
   function ok() {
-    if (resolver) resolver(true)
-    resolver = null
-    visible.value = false
+    finish(true)
   }
   function cancel() {
-    if (resolver) resolver(false)
-    resolver = null
-    visible.value = false
+    finish(false)
   }
 
   return { confirm, ok, cancel, visible, options }

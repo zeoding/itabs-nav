@@ -15,6 +15,7 @@
 import { computed, defineAsyncComponent, h } from 'vue'
 import BaseDialog from '@/components/BaseDialog.vue'
 import { $t } from '@/composables/useI18n'
+import { TOOLS_BY_KIND } from '@/config/tools'
 import {
   RiSubtractLine,
   RiLoader4Line,
@@ -114,49 +115,11 @@ const emit = defineEmits(['update:open', 'update:minimized'])
 /** 实际可见：打开、有 widget 且未最小化（合并后交给 BaseDialog 控制显隐/ESC/全屏） */
 const visible = computed(() => props.open && !!props.widget && !props.minimized)
 
-/* 内置工具 widget 的兜底文案(暂不接入 i18n) */
-const FALLBACK_WIDGET_TEXT = {
-  'split-text': {
-    title: '文本分割',
-    desc: '按分隔符拆分 / 去重 / 分组 / 导出 xlsx',
-    categoryKey: 'siteEditor.widgetCats.tool',
-  },
-  'free-email': {
-    title: '免费邮箱',
-    desc: '基于 duckmail.sbs 的临时邮箱，接收验证码/通知',
-    categoryKey: 'siteEditor.widgetCats.tool',
-  },
-  'wallpaper': {
-    title: '壁纸库',
-    desc: 'Wallhaven 精选壁纸：搜索 / 预览 / 一键设为桌面壁纸',
-    categoryKey: 'siteEditor.widgetCats.tool',
-  },
-  'week-report': {
-    title: '周报统计',
-    desc: '上传周报 xlsx，按部门/变更类型统计并生成图表',
-    categoryKey: 'siteEditor.widgetCats.tool',
-  },
-  'encode-decode': {
-    title: '编码解码',
-    desc: 'Base64 / URL / Hex / 哈希 / AES / RSA 等编码与加解密',
-    categoryKey: 'siteEditor.widgetCats.tool',
-  },
-  'qr-code': {
-    title: '二维码',
-    desc: '生成二维码（可下载）／识别图片中的二维码',
-    categoryKey: 'siteEditor.widgetCats.tool',
-  },
-}
-
-const widgetTitle = computed(() =>
-  props.widget ? (FALLBACK_WIDGET_TEXT[props.widget.key]?.title || '') : ''
-)
-const widgetDesc = computed(() =>
-  props.widget ? (FALLBACK_WIDGET_TEXT[props.widget.key]?.desc || '') : ''
-)
-const widgetCategory = computed(() =>
-  props.widget ? (FALLBACK_WIDGET_TEXT[props.widget.key]?.categoryKey || '') : ''
-)
+/* 内置工具 widget 元数据统一取自 @/config/tools */
+const tool = computed(() => (props.widget ? TOOLS_BY_KIND[props.widget.key] : null))
+const widgetTitle = computed(() => tool.value?.name || '')
+const widgetDesc = computed(() => tool.value?.desc || '')
+const widgetCategory = computed(() => tool.value?.categoryKey || '')
 const widgetKey = computed(() => props.widget?.key || '')
 
 function close() {

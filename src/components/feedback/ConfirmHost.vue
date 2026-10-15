@@ -145,15 +145,14 @@ watch(visible, (v) => {
 
 .btn-ok {
   color: #fff;
-  background: linear-gradient(135deg, #ef4444, #f97316);
-  
+  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
 
   &:hover {
     transform: translateY(-1px);
   }
 
   &.danger {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: linear-gradient(135deg, #ef4444, #f97316);
 
     &:hover {
       box-shadow: 0 6px 18px rgba(239, 68, 68, 0.35);

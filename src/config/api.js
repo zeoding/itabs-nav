@@ -1,4 +1,4 @@
-﻿/**
+/**
  * API 端点统一配置（唯一收口）
  *
  * 约定：
@@ -16,16 +16,16 @@ export const IMSYY_HOT_BASE = 'https://api-hot.imsyy.top'
 
 // ===================== 天气 API =====================
 export const WEATHER_API = {
-  /** uapis.cn 天气（支持 extended/forecast/hourly/indices/lang 参数） */
-  base: `${UAPIS_BASE}/misc/weather`,
-  /** 当前天气（含扩展字段占位，调用方按需追加 extended/forecast/hourly/indices/lang） */
+  /**
+   * 当前天气端点
+   * 调用方按需追加 extended/forecast/hourly/indices/lang 参数
+   */
   current: (city) => `${UAPIS_BASE}/misc/weather?city=${encodeURIComponent(city)}`,
 }
 
 // ===================== IP 定位 API =====================
 export const NET_API = {
   /** IP 归属地（commercial 源，返回 region/district/lng/lat） */
-  base: `${UAPIS_BASE}/network/myip`,
   myip: (source = 'commercial') => `${UAPIS_BASE}/network/myip?source=${source}`,
 }
 
@@ -38,7 +38,6 @@ export const NET_API = {
  * 返回结构：{ code: 200, data: { list: [...] } } 或类似
  */
 export const HOT_API = {
-  base: `${UAPIS_BASE}/misc/hotboard`,
   /** 多个备选端点（按优先级） */
   endpoints: {
     uapis: {
@@ -50,7 +49,7 @@ export const HOT_API = {
       parser: 'imsyy',
     },
   },
-  /** 支持的热榜源 */
+  /** 支持的热榜源（stores/hot.js 由此派生 SOURCES，新增源只需加一行） */
   sources: {
     baidu: { name: '百度', color: '#2932E1' },
     weibo: { name: '微博', color: '#E6162D' },
@@ -62,7 +61,6 @@ export const HOT_API = {
 
 // ===================== 一言 API =====================
 export const SAYING_API = {
-  base: `${UAPIS_BASE}/saying/random`,
   /** 默认请求参数（分类/模式） */
   defaultParams: { mode: 'random', category: '哲学' },
   /** 随机一言（调用方需透传 params，见 stores/saying.js） */
@@ -72,7 +70,6 @@ export const SAYING_API = {
 // ===================== 逆地理 API =====================
 export const GEO_API = {
   /** Nominatim 反向地理（浏览器直调；User-Agent 系 forbidden header，由浏览器自动处理） */
-  base: 'https://nominatim.openstreetmap.org/reverse',
   reverse: (lat, lng) =>
     `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=zh&zoom=10`,
 }
@@ -95,7 +92,6 @@ export const WALLPAPER_API = {
  * - 调用方经 http.get(URL, { params }) 透传查询参数
  */
 export const WALLHAVEN_API = {
-  base: 'https://wallhaven.cc/api/v1',
   /**
    * 搜索端点（调用方透传 params：q / categories / purity / sorting / order / page）
    * - 主源为 Netlify 反代：部分网络环境直连 wallhaven.cc 不通，由代理解决可用性
@@ -145,26 +141,6 @@ export const SEARCH_ENGINES = {
 /** 未知 slug 回退 */
 export const DEFAULT_SEARCH_URL = 'https://www.google.com/search?q='
 
-// ===================== 引擎图标 =====================
-/**
- * 搜索引擎图标（来自 @thesvg/icons）
- * - 引擎 key → CDN 路径
- * - 加载方式：import.meta.glob
- */
-export const ENGINE_ICONS = {
-  base: '/node_modules/@thesvg/icons/dist',
-  keys: ['baidu', 'bing', 'google', 'duckduckgo', 'sogou', 'yandex', 'wechat'],
-}
-
-// ===================== 用户配置 API =====================
-/**
- * 未来扩展：用户登录、配置同步等
- * 当前：纯前端 IndexedDB，无后端 API
- */
-export const USER_API = {
-  // 暂无
-}
-
 // ===================== Mock 模式 =====================
 const USE_MOCK = false // 调试用：true = 全部走 mock（实际项目用环境变量）
 if (USE_MOCK) {
@@ -185,6 +161,4 @@ export default {
   FAVICON_API,
   SEARCH_ENGINES,
   DEFAULT_SEARCH_URL,
-  ENGINE_ICONS,
-  USER_API,
 }
