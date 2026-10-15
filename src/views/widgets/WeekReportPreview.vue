@@ -4,6 +4,7 @@
  *
  * 功能：
  *  - 上传周报 .xlsx（读第 2 个工作表，需含「申请人 / ECR申请部门 / 变更类型」列）
+ *    支持「选择文件」与拖拽到面板两种导入方式
  *  - 汇总表：变更类型 × 部门矩阵 + 百分比；明细表：申请人 × 部门矩阵
  *  - 饼图（按变更类型）+ 柱状图（按申请人，可缩放）
  *  - 数据与生成时间持久化到 settings 表（weekReport.data / weekReport.savedAt）
@@ -59,6 +60,8 @@ const SAVED_AT_KEY = 'weekReport.savedAt'
 const rows = ref([])
 const savedAt = ref(null)
 const fileRef = ref(null)
+const isDragging = ref(false)
+let dragDepth = 0
 
 /* ---------------- 表格（computed 派生，选完文件即更新） ---------------- */
 
@@ -210,7 +213,15 @@ watch(isDark, () => nextTick(renderCharts))
 function handleFile(e) {
   const file = e.target.files?.[0]
   e.target.value = '' // 允许重复选择同一文件
+  readFile(file)
+}
+
+function readFile(file) {
   if (!file) return
+  if (!/\.xlsx$/i.test(file.name)) {
+    message.error('仅支持 .xlsx 文件')
+    return
+  }
   const reader = new FileReader()
   reader.onerror = () => message.error('文件读取失败')
   reader.onload = (ev) => {
@@ -237,6 +248,24 @@ function handleFile(e) {
     }
   }
   reader.readAsArrayBuffer(file)
+}
+
+/* 拖拽导入：dragenter/leave 用计数抵消子元素冒泡导致的闪烁 */
+function onDragEnter(e) {
+  if (!e.dataTransfer?.types?.includes('Files')) return
+  dragDepth++
+  isDragging.value = true
+}
+
+function onDragLeave() {
+  dragDepth = Math.max(0, dragDepth - 1)
+  if (dragDepth === 0) isDragging.value = false
+}
+
+function onDrop(e) {
+  dragDepth = 0
+  isDragging.value = false
+  readFile(e.dataTransfer?.files?.[0])
 }
 
 async function persist() {
@@ -299,7 +328,19 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="week-report">
+  <div
+    class="week-report"
+    @dragenter.prevent="onDragEnter"
+    @dragover.prevent
+    @dragleave.prevent="onDragLeave"
+    @drop.prevent="onDrop"
+  >
+    <transition name="wr-fade">
+      <div v-if="isDragging" class="drop-overlay">
+        <RiFileUploadLine size="40" aria-hidden="true" />
+        <p>松开以导入周报 xlsx</p>
+      </div>
+    </transition>
     <div class="toolbar">
       <input
         ref="fileRef"
@@ -328,7 +369,7 @@ onBeforeUnmount(() => {
       <div class="tables">
         <div v-if="!rows.length" class="empty-hint">
           <RiFileUploadLine size="34" aria-hidden="true" />
-          <p>选择周报 xlsx 开始统计<br />（第 2 个工作表需含「申请人 / ECR申请部门 / 变更类型」列）</p>
+          <p>选择或拖拽周报 xlsx 开始统计<br />（第 2 个工作表需含「申请人 / ECR申请部门 / 变更类型」列）</p>
         </div>
         <template v-else>
           <table class="wr-table">
@@ -385,6 +426,40 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  position: relative;
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 2px dashed @accent;
+  border-radius: @radius-card;
+  color: @accent;
+  font-size: 14px;
+  font-weight: 600;
+  background: color-mix(in srgb, @accent 10%, transparent);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+
+  p {
+    margin: 0;
+  }
+}
+
+.wr-fade-enter-active,
+.wr-fade-leave-active {
+  transition: opacity @tr;
+}
+
+.wr-fade-enter-from,
+.wr-fade-leave-to {
+  opacity: 0;
 }
 
 .toolbar {
