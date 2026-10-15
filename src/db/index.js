@@ -36,9 +36,10 @@ export const DEFAULT_SITE_SIZE = '1x1'
  *  - 'wallpaper'  内置工具:壁纸库(点击打开弹窗)
  *  - 'week-report' 内置工具:周报统计(点击打开弹窗)
  *  - 'encode-decode' 内置工具:编码解码/加密解密(点击打开弹窗)
+ *  - 'qr-code'    内置工具:二维码生成/解码(点击打开弹窗)
  * 其它取值保留向后兼容:旧数据读不到 kind 时回退到 'web'
  */
-export const SITE_KINDS = ['web', 'split-text', 'free-email', 'wallpaper', 'week-report', 'encode-decode']
+export const SITE_KINDS = ['web', 'split-text', 'free-email', 'wallpaper', 'week-report', 'encode-decode', 'qr-code']
 export const DEFAULT_SITE_KIND = 'web'
 
 /**
@@ -47,7 +48,7 @@ export const DEFAULT_SITE_KIND = 'web'
  *  - 工具卡片类站点:点击 -> emit('action') 由父组件打开对应弹窗
  * 新增工具类时只需在此数组里追加 kind 即可,SiteCard 会自动识别
  */
-export const TOOL_KINDS = ['split-text', 'free-email', 'wallpaper', 'week-report', 'encode-decode']
+export const TOOL_KINDS = ['split-text', 'free-email', 'wallpaper', 'week-report', 'encode-decode', 'qr-code']
 
 /** 判定某个 kind 是否为工具卡 */
 export function isToolKind(kind) {

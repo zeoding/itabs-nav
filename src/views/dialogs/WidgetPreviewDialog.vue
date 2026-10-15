@@ -90,6 +90,19 @@ const EncodeDecodePreview = defineAsyncComponent({
   },
 })
 
+const QrCodePreview = defineAsyncComponent({
+  loader: () => import('@/views/widgets/QrCodePreview.vue'),
+  delay: 100,
+  loadingComponent: {
+    render() {
+      return h('div', { class: 'cp-loading-with-icon' }, [
+        h(RiLoader4Line, { size: 28, class: 'spin', 'aria-hidden': true }),
+        h('div', { class: 'cp-loading-text' }, $t('common.loading')),
+      ])
+    },
+  },
+})
+
 const props = defineProps({
   open: { type: Boolean, default: false },
   widget: { type: Object, default: null },
@@ -126,6 +139,11 @@ const FALLBACK_WIDGET_TEXT = {
   'encode-decode': {
     title: '编码解码',
     desc: 'Base64 / URL / Hex / 哈希 / AES / RSA 等编码与加解密',
+    categoryKey: 'siteEditor.widgetCats.tool',
+  },
+  'qr-code': {
+    title: '二维码',
+    desc: '生成二维码（可下载）／识别图片中的二维码',
     categoryKey: 'siteEditor.widgetCats.tool',
   },
 }
@@ -193,6 +211,7 @@ function minimize() {
               <WallpaperPreview v-else-if="widgetKey === 'wallpaper'" :key="widgetKey" />
               <WeekReportPreview v-else-if="widgetKey === 'week-report'" :key="widgetKey" />
               <EncodeDecodePreview v-else-if="widgetKey === 'encode-decode'" :key="widgetKey" />
+              <QrCodePreview v-else-if="widgetKey === 'qr-code'" :key="widgetKey" />
             </div>
           </div>
     <template #footer>

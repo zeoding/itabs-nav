@@ -141,6 +141,7 @@ const TOOL_TITLE_KEYS = {
   'wallpaper': 'widgets.wallpaper',
   'week-report': 'widgets.weekReport',
   'encode-decode': 'widgets.encodeDecode',
+  'qr-code': 'widgets.qrCode',
 }
 const previewTitle = computed(() => {
   const key = previewWidget.value?.key
@@ -354,6 +355,11 @@ const TOOL_PRESETS = {
     name: '编码解码',
     url: 'action:encode-decode',
     icon: '🔐',
+  },
+  'qr-code': {
+    name: '二维码',
+    url: 'action:qr-code',
+    icon: '🏁',
   },
 }
 

@@ -154,6 +154,13 @@ export default defineConfig({
               priority: 25,
             },
             {
+              // 二维码 widget 专用依赖（qrcode-generator 生成 / jsqr 解码）：
+              // 独立分包，仅打开该 widget 时下载，避免落进 vendor 兜底块被首屏连带加载
+              name: 'qr-libs',
+              test: /node_modules[\\/](qrcode-generator|jsqr)/,
+              priority: 25,
+            },
+            {
               name: 'vendor',
               test: /node_modules/,
               priority: 10,

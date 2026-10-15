@@ -61,6 +61,7 @@ const WIDGETS = [
   { key: 'wallpaper', icon: '🖼️', category: 'tool', kind: 'wallpaper' },
   { key: 'week-report', icon: '📊', category: 'tool', kind: 'week-report' },
   { key: 'encode-decode', icon: '🔐', category: 'tool', kind: 'encode-decode' },
+  { key: 'qr-code', icon: '🏁', category: 'tool', kind: 'qr-code' },
 ]
 
 /** 内置工具 widget 的字面量文案(暂不接入 i18n) */
@@ -84,6 +85,10 @@ const FALLBACK_WIDGET_TEXT = {
   'encode-decode': {
     title: '编码解码',
     desc: 'Base64 / URL / Hex / 哈希 / AES / RSA 等编码与加解密',
+  },
+  'qr-code': {
+    title: '二维码',
+    desc: '生成二维码（可下载）／识别图片中的二维码',
   },
 }
 
