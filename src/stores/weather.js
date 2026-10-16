@@ -304,29 +304,49 @@ export const useWeatherStore = defineStore('weather', () => {
   }
 })
 
-/** 计算 24h 内最高/最低温度区间 */
+/**
+ * 计算 24h 内最高/最低温度区间
+ * - 忽略非数字项；一项有效数据都没有时返回 0/0（而非 Infinity，
+ *   否则调用方做算术后会得到 NaN）
+ */
 export function tempRange(hourly) {
   if (!hourly || !hourly.length) return { min: 0, max: 0 }
-  let min = Infinity, max = -Infinity
+  let min = Infinity
+  let max = -Infinity
   hourly.forEach((h) => {
-    const t = Number(h.temp)
+    const t = Number(h?.temp)
+    if (!Number.isFinite(t)) return
     if (t < min) min = t
     if (t > max) max = t
   })
+  if (min === Infinity) return { min: 0, max: 0 }
   return { min, max }
 }
 
-/** 24h 温度点归一化到 0~100 */
+/**
+ * 24h 温度折线路径（归一化到 height 高度）
+ * - 单点数据没有「线段」可言：在 width 中点输出一个点。
+ *   否则 width/(length-1) 会除零，0 * Infinity = NaN，路径整体失效
+ * - 非有限温度按纵向中点处理，避免一个脏值把整条路径带成 NaN
+ */
 export function tempLinePoints(hourly, width = 320, height = 60) {
   if (!hourly || !hourly.length) return ''
   const { min, max } = tempRange(hourly)
   const range = max - min || 1
+  const yOf = (t) => {
+    const n = Number(t)
+    if (!Number.isFinite(n)) return height / 2
+    return height - ((n - min) / range) * height
+  }
+  // 单点：无跨度，取横向中点
+  if (hourly.length === 1) {
+    return `M ${(width / 2).toFixed(1)} ${yOf(hourly[0]?.temp).toFixed(1)}`
+  }
   const stepX = width / (hourly.length - 1)
   return hourly
     .map((h, i) => {
       const x = i * stepX
-      const y = height - ((Number(h.temp) - min) / range) * height
-      return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`
+      return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${yOf(h?.temp).toFixed(1)}`
     })
     .join(' ')
 }

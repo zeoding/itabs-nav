@@ -89,6 +89,11 @@ export const useSayingStore = defineStore('saying', () => {
     source,
     loading,
     ready,
+    // 与 hot / weather 两个 store 对齐：错误与缓存状态一并暴露，
+    // 否则 load() 里对 error 的赋值落在一个 UI 读不到的地方（失败被静默吞掉）
+    error,
+    fromCache,
+    lastUpdated,
     ensureAutoLoad,
     refresh: () => load(true),
   }

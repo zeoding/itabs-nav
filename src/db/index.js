@@ -22,8 +22,6 @@ import { TOOL_KINDS } from '@/config/tools'
  *   v6: 当前——+ cache 表（localStorage 每日缓存整体迁入 IndexedDB）
  */
 const DB_NAME = 'itabs-nav-db'
-/** 当前数据库版本（导出供调试/文档引用，schema 声明见下方 version(1..n) 链） */
-export const DB_VERSION = 6
 
 /** 站点可用的网格尺寸（行x列） */
 export const SITE_SIZES = ['1x1', '1x2', '2x1', '2x2', '2x4', '4x2']
@@ -314,25 +312,11 @@ export async function migrateSetting(key, legacyKey, fallback = null, parse = (v
 
 /* ---------------- 待办 CRUD ---------------- */
 
-export async function getAllTodos() {
-  const db = getDB()
-  const all = await db.table('todos').toArray()
-  return all
-    .filter((t) => !t.deleted)
-    .sort(sortByOrderThenCreated)
-}
-
-export async function getDeletedTodos() {
-  const db = getDB()
-  const all = await db.table('todos').toArray()
-  return all
-    .filter((t) => t.deleted)
-    .sort((a, b) => (b.deletedAt ?? b.createdAt ?? 0) - (a.deletedAt ?? a.createdAt ?? 0))
-}
-
 /**
  * 一次读取 todos 表并拆分 active/deleted
- * - 避免 getAllTodos + getDeletedTodos 各自全表 toArray 的重复扫描
+ * - 全表只 toArray 一次，active/deleted 各自排序
+ * - 原 getAllTodos / getDeletedTodos 两个导出是它的前身（各自全表扫描），
+ *   已无调用方，故删除，统一走本函数
  */
 export async function getTodosSplit() {
   const db = getDB()
