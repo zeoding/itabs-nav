@@ -147,8 +147,7 @@ function onRefresh(e) {
   border: none;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(17, 22, 32, 0.62);
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  .glass-blur(20px, 160%);
   color: #fff;
   animation: taskbar-up 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
 }

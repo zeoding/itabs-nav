@@ -219,8 +219,7 @@ function onRemoveClick(e) {
   /* 非 1x1：主题玻璃底 + 主题文字色（原白色底配白字不可读） */
   &.with-bg {
     background: var(--glass-bg);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    .glass-blur(24px, 180%);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
 
@@ -313,8 +312,7 @@ function onRemoveClick(e) {
   border-radius: @radius-circle;
   border: 1px solid rgba(31, 41, 55, 0.08);
   background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  .glass-blur(8px);
   color: @text-soft;
   font-size: 15px;
   font-weight: 500;

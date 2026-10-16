@@ -301,8 +301,7 @@ function search() {
   width: min(620px, 92vw);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  .glass-blur(20px, 180%);
   border: 1px solid color-mix(in srgb, @accent 0.15%, transparent);
   box-shadow: 0 12px 32px rgba(31, 41, 55, 0.18);
   z-index: 9999;

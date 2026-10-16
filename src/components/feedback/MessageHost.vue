@@ -89,8 +89,7 @@ function onClick(id) {
   font-size: 13px;
   font-weight: 500;
   line-height: 1.4;
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  .glass-blur(14px, 180%);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
   max-width: min(80vw, 480px);

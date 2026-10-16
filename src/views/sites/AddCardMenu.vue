@@ -103,8 +103,7 @@ function doToggle() {
   padding: 6px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  .glass-blur(20px, 180%);
   border: 1px solid color-mix(in srgb, @accent 0.15%, transparent);
   box-shadow: 0 16px 40px rgba(31, 41, 55, 0.22);
   z-index: 10001;

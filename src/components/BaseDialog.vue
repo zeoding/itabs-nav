@@ -111,7 +111,7 @@ const dlgVars = computed(() => ({
   align-items: center;
   justify-content: center;
   z-index: var(--dlg-z, 10000);
-  backdrop-filter: blur(6px);
+  .glass-blur(6px);
   padding: 20px;
 
   &:has(.dialog.is-fullscreen) {

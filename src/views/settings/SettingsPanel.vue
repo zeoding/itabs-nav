@@ -118,7 +118,7 @@ function forwardUpdate(key, value) {
   inset: 0;
   background: rgba(31, 41, 55, 0.35);
   z-index: 100;
-  backdrop-filter: blur(4px);
+  .glass-blur(4px);
 }
 
 .drawer {

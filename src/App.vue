@@ -649,8 +649,7 @@ async function handleRestored() {
   border-radius: @radius-circle;
   color: @text;
   background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  .glass-blur(20px, 180%);
   border: 1px solid rgba(255, 255, 255, 0.7);
   box-shadow: 0 4px 18px rgba(31, 41, 55, 0.1);
   cursor: pointer;

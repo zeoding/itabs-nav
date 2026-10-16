@@ -35,6 +35,7 @@ import * as XLSX from 'xlsx'
 import { getSetting, setSetting } from '@/db'
 import { useMessage } from '@/composables/useMessage'
 import { useConfirm } from '@/composables/useConfirm'
+import { useFileDrop } from '@/composables/useFileDrop'
 import { useSettingsStore } from '@/stores/settings'
 import { RiFileUploadLine, RiDeleteBinLine } from '@remixicon/vue'
 
@@ -60,8 +61,8 @@ const SAVED_AT_KEY = 'weekReport.savedAt'
 const rows = ref([])
 const savedAt = ref(null)
 const fileRef = ref(null)
-const isDragging = ref(false)
-let dragDepth = 0
+/** 拖拽导入：机制收口在 useFileDrop（详见该文件注释） */
+const { isDragging, onDragEnter, onDragLeave, onDrop } = useFileDrop(readFile)
 
 /* ---------------- 表格（computed 派生，选完文件即更新） ---------------- */
 
@@ -250,24 +251,6 @@ function readFile(file) {
   reader.readAsArrayBuffer(file)
 }
 
-/* 拖拽导入：dragenter/leave 用计数抵消子元素冒泡导致的闪烁 */
-function onDragEnter(e) {
-  if (!e.dataTransfer?.types?.includes('Files')) return
-  dragDepth++
-  isDragging.value = true
-}
-
-function onDragLeave() {
-  dragDepth = Math.max(0, dragDepth - 1)
-  if (dragDepth === 0) isDragging.value = false
-}
-
-function onDrop(e) {
-  dragDepth = 0
-  isDragging.value = false
-  readFile(e.dataTransfer?.files?.[0])
-}
-
 async function persist() {
   try {
     await Promise.all([
@@ -444,7 +427,7 @@ onBeforeUnmount(() => {
   font-size: 14px;
   font-weight: 600;
   background: color-mix(in srgb, @accent 10%, transparent);
-  backdrop-filter: blur(2px);
+  .glass-blur(2px);
   pointer-events: none;
 
   p {

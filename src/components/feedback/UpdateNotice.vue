@@ -73,8 +73,7 @@ const hasNotes = computed(() => Boolean(updateState.available?.notes))
   padding: 12px 14px;
   border-radius: @radius-card;
   background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  .glass-blur(20px, 180%);
   border: 1px solid rgba(255, 255, 255, 0.7);
   box-shadow: 0 10px 34px rgba(31, 41, 55, 0.16);
   color: @text;

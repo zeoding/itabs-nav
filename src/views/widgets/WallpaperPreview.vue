@@ -808,7 +808,7 @@ onMounted(async () => {
   padding: 4px;
   border-radius: @radius-pill;
   background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(6px);
+  .glass-blur(6px);
 }
 
 .zoom-btn {

@@ -392,8 +392,7 @@ const iconPresets = [
   padding: 10px 8px;
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  .glass-blur(20px, 180%);
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 0 8px 32px rgba(31, 41, 55, 0.08);
   max-height: 80vh;
@@ -428,8 +427,7 @@ const iconPresets = [
   justify-content: center;
   border-radius: 0 12px 12px 0;
   background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  .glass-blur(20px, 180%);
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-left: none;
   box-shadow: 4px 4px 16px rgba(31, 41, 55, 0.1);

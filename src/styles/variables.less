@@ -50,6 +50,25 @@
   text-overflow: ellipsis;
 }
 
+// ---- 玻璃模糊 ----
+/**
+ * backdrop-filter 及其 -webkit- 前缀（Safari 需要）
+ * 之前 17 个文件各写一遍，共 33 处重复；收敛到这里。
+ * - 传 1 个参数：仅模糊
+ * - 传 2 个参数：模糊 + 饱和度
+ * 注意：mobile.less 那两处必须带 !important 才能压过组件 scoped 样式，
+ * 混入无法表达 important，故那里保持手写。
+ */
+.glass-blur(@blur: 20px) {
+  backdrop-filter: blur(@blur);
+  -webkit-backdrop-filter: blur(@blur);
+}
+
+.glass-blur(@blur, @sat) {
+  backdrop-filter: blur(@blur) saturate(@sat);
+  -webkit-backdrop-filter: blur(@blur) saturate(@sat);
+}
+
 // ---- 细滚动条 ----
 .thin-scrollbar(@thumb, @width: 4px) {
   scrollbar-width: thin;

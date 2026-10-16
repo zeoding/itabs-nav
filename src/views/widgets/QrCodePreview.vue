@@ -17,11 +17,12 @@
  *    环宽），Logo 先垫背景板再绘制，含 Logo 时建议容错级别 H
  *  - 解码在隐藏 canvas 上绘制后取 ImageData；超大图先降采样，兼顾识别率与性能
  */
-import { ref, shallowRef, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, shallowRef, computed, watch, onMounted, nextTick } from 'vue'
 import qrcode from 'qrcode-generator'
 import jsQR from 'jsqr'
 import { useMessage } from '@/composables/useMessage'
 import { $t } from '@/composables/useI18n'
+import { useFileDrop } from '@/composables/useFileDrop'
 import { isSafeHttpUrl, openExternal } from '@/utils/openExternal'
 import { RiDownloadLine, RiFileCopyLine, RiImageAddLine, RiImageLine } from '@remixicon/vue'
 
@@ -306,8 +307,6 @@ const decodeCanvas = ref(null)
 const decodeImgUrl = ref('')
 const decoded = ref('')
 const decodeError = ref('')
-const isDragging = ref(false)
-let dragDepth = 0
 
 const isUrl = computed(() => isSafeHttpUrl(decoded.value))
 
@@ -375,38 +374,12 @@ function openLink() {
   openExternal(decoded.value)
 }
 
-/* 拖拽导入：dragenter/leave 用计数抵消子元素冒泡导致的闪烁 */
-function onDragEnter(e) {
-  if (!e.dataTransfer?.types?.includes('Files')) return
-  dragDepth++
-  isDragging.value = true
-}
-function onDragLeave() {
-  dragDepth = Math.max(0, dragDepth - 1)
-  if (dragDepth === 0) isDragging.value = false
-}
-function onDrop(e) {
-  dragDepth = 0
-  isDragging.value = false
-  decodeFile(e.dataTransfer?.files?.[0])
-}
-
-/** 剪贴板粘贴图片（仅解码页生效） */
-function onPaste(e) {
-  if (mode.value !== 'dec') return
-  const items = e.clipboardData?.items
-  if (!items) return
-  for (const it of items) {
-    if (it.type?.startsWith('image/')) {
-      const file = it.getAsFile()
-      if (file) {
-        decodeFile(file)
-        e.preventDefault()
-      }
-      return
-    }
-  }
-}
+/* 拖拽 / 粘贴导入图片：机制收口在 useFileDrop（详见该文件注释）
+   - pasteWhen 限定只在解码页响应粘贴
+   - 拖拽与粘贴共用同一个 decodeFile 回调 */
+const { isDragging, onDragEnter, onDragLeave, onDrop } = useFileDrop(decodeFile, {
+  pasteWhen: () => mode.value === 'dec',
+})
 
 /* ---------------- 生命周期 ---------------- */
 
@@ -421,11 +394,6 @@ watch(
 
 onMounted(() => {
   renderQr()
-  window.addEventListener('paste', onPaste)
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('paste', onPaste)
 })
 </script>
 

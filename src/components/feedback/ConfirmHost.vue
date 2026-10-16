@@ -68,7 +68,7 @@ watch(visible, (v) => {
   align-items: center;
   justify-content: center;
   z-index: 11000;
-  backdrop-filter: blur(6px);
+  .glass-blur(6px);
 }
 
 .confirm-dialog {
