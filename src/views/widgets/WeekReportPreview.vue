@@ -7,6 +7,7 @@
  *    支持「选择文件」与拖拽到面板两种导入方式
  *  - 汇总表：变更类型 × 部门矩阵 + 百分比；明细表：申请人 × 部门矩阵
  *  - 饼图（按变更类型）+ 柱状图（按申请人，可缩放）
+ *  - 导出 Excel：汇总页签 = 汇总表 + 明细表，数据页签 = 导入文件原始数据
  *  - 数据与生成时间持久化到 settings 表（weekReport.data / weekReport.savedAt）
  *
  * 相比原版的适配（行为差异见 detailRows）：
@@ -33,12 +34,13 @@ import {
 import { CanvasRenderer } from 'echarts/renderers'
 import * as XLSX from 'xlsx'
 import { getSetting, setSetting } from '@/db'
-import { formatDateTime as formatDate } from '@/utils/datetime'
+import { formatDateTime as formatDate, formatYMD } from '@/utils/datetime'
+import { downloadBlob } from '@/utils/download'
 import { useMessage } from '@/composables/useMessage'
 import { useConfirm } from '@/composables/useConfirm'
 import { useFileDrop } from '@/composables/useFileDrop'
 import { useSettingsStore } from '@/stores/settings'
-import { RiFileUploadLine, RiDeleteBinLine } from '@remixicon/vue'
+import { RiFileUploadLine, RiDeleteBinLine, RiFileExcel2Line } from '@remixicon/vue'
 
 echarts.use([
   BarChart,
@@ -278,6 +280,75 @@ async function clearData() {
   message.success('已清空')
 }
 
+/* ---------------- 导出 Excel ---------------- */
+
+const exporting = ref(false)
+
+/** CJK 按双宽计的列宽自适应（封顶 40，最小 8） */
+function aoaColWidths(aoa) {
+  const widths = []
+  for (const row of aoa) {
+    row.forEach((cell, i) => {
+      let w = 0
+      for (const ch of String(cell == null ? '' : cell)) w += ch.charCodeAt(0) > 127 ? 2 : 1
+      widths[i] = Math.max(widths[i] || 0, w)
+    })
+  }
+  return widths.map((w) => Math.min(40, Math.max(8, w + 2)))
+}
+
+/**
+ * 导出 Excel（两个页签，用已有 SheetJS 写入）：
+ *  - 汇总：汇总表（变更类型 × 部门矩阵 + 百分比）+ 明细表（申请人 × 部门矩阵）
+ *  - 数据：导入文件第 2 个工作表的原始数据
+ */
+async function exportExcel() {
+  if (!rows.value.length || exporting.value) return
+  exporting.value = true
+  try {
+    const wb = XLSX.utils.book_new()
+
+    /* 页签一：汇总（汇总表 + 明细表） */
+    const sumAoA = [
+      ['周报统计汇总'],
+      [`生成时间：${savedAt.value || '—'}`],
+      [],
+      ['汇总表'],
+      totalColumns.value,
+      ...totalRows.value.map((r) => totalColumns.value.map((c) => r[c])),
+      [],
+      ['明细表'],
+      detailColumns.value,
+      ...detailRows.value.map((r) => detailColumns.value.map((c) => r[c])),
+    ]
+    const wsSum = XLSX.utils.aoa_to_sheet(sumAoA)
+    wsSum['!cols'] = aoaColWidths(sumAoA)
+    XLSX.utils.book_append_sheet(wb, wsSum, '汇总')
+
+    /* 页签二：数据（导入文件的原始行） */
+    const wsData = XLSX.utils.json_to_sheet(rows.value)
+    wsData['!cols'] = aoaColWidths([
+      Object.keys(rows.value[0]),
+      ...rows.value.map((r) => Object.values(r)),
+    ])
+    XLSX.utils.book_append_sheet(wb, wsData, '数据')
+
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
+    downloadBlob(
+      new Blob([buf], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      }),
+      `周报统计_${formatYMD(new Date())}.xlsx`
+    )
+    message.success('已导出 Excel（汇总表/明细表 + 数据）')
+  } catch (e) {
+    console.error('[weekReport] 导出失败', e)
+    message.error('导出失败：' + (e?.message || '未知错误'))
+  } finally {
+    exporting.value = false
+  }
+}
+
 /** 原版 dayjs().format('YYYY-MM-DD HH:mm:ss') 的原生等价 */
 onMounted(async () => {
   resizeObserver = new ResizeObserver(() => {
@@ -331,6 +402,16 @@ onBeforeUnmount(() => {
       <button class="wr-btn" type="button" @click="fileRef?.click()">
         <RiFileUploadLine size="16" aria-hidden="true" />
         选择文件
+      </button>
+      <button
+        v-if="rows.length"
+        class="wr-btn ghost"
+        type="button"
+        :disabled="exporting"
+        @click="exportExcel"
+      >
+        <RiFileExcel2Line size="16" aria-hidden="true" />
+        {{ exporting ? '生成中…' : '导出 Excel' }}
       </button>
       <button
         v-if="rows.length"
@@ -472,6 +553,21 @@ onBeforeUnmount(() => {
 
   &:active {
     transform: scale(0.96);
+  }
+
+  /* 导出按钮：非主操作，软色调 + 生成中禁用 */
+  &.ghost {
+    color: @accent;
+    background: @accent-soft;
+
+    &:hover:not(:disabled) {
+      background: color-mix(in srgb, @accent 0.22%, transparent);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
   }
 
   /* 清空按钮：危险色 */
