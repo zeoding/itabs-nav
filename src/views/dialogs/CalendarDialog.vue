@@ -4,12 +4,13 @@
  *  左侧：月份+ 事件列表
  *  右侧：今日详情（公历、农历、节日、星座、宜、忌? *  支持全屏放大
  */
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useEventsStore } from '@/stores/events'
 import BaseDialog from '@/components/BaseDialog.vue'
 import BaseSelect from '@/components/BaseSelect.vue'
 import { useI18n, $t } from '@/composables/useI18n'
+import { formatYMD as formatDate } from '@/utils/datetime'
 import {
   RiArrowLeftSLine,
   RiArrowRightSLine,
@@ -51,13 +52,6 @@ watch(lang, (l) => {
     WEEKDAYS = [...WEEKDAYS_CN]
   }
 }, { immediate: true })
-
-function formatDate(d) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
 
 const year = computed(() => cursor.value.getFullYear())
 const month = computed(() => cursor.value.getMonth() + 1)
@@ -180,10 +174,6 @@ const todayInfo = computed(() => {
     almanac: getDayAlmanac(t),
   }
 })
-
-onMounted(() => {
-  load()
-})
 </script>
 
 <template>
@@ -195,6 +185,7 @@ onMounted(() => {
     overflow="auto"
     fs-padding="24px 40px"
     fs-overflow="hidden"
+    @open="load"
     @close="close"
   >
     <template #default="{ fullscreen }">
@@ -527,7 +518,7 @@ onMounted(() => {
 
   /* 法定节假日（休）：淡红背景；调休补班日（班）：浅灰背景 */
   &.xiu {
-    background: rgba(239, 68, 68, 0.08);
+    background: fade(@danger, 8%);
   }
 
   &.ban {
@@ -535,7 +526,7 @@ onMounted(() => {
   }
 
   &.xiu:hover {
-    background: rgba(239, 68, 68, 0.14);
+    background: fade(@danger, 14%);
   }
 
   &.ban:hover {
@@ -556,7 +547,7 @@ onMounted(() => {
 
   /* 休息日：周六、周日字体红色*/
   &.weekend .day-num {
-    color: #ef4444;
+    color: @danger;
   }
 
   /* 调休补班的周末照常上班：不显示红色 */
@@ -576,7 +567,7 @@ onMounted(() => {
 .day-num {
   .day.today & {
     color: #fff;
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     width: 22px;
     height: 22px;
     border-radius: @radius-circle;
@@ -612,7 +603,7 @@ onMounted(() => {
   }
 
   &.kind-solar {
-    color: #ef4444;
+    color: @danger;
     font-weight: 600;
   }
 
@@ -648,7 +639,7 @@ onMounted(() => {
   pointer-events: none;
 
   &.tag-xiu {
-    background: #ef4444;
+    background: @danger;
   }
 
   &.tag-ban {
@@ -693,8 +684,8 @@ onMounted(() => {
   border-radius: 16px;
   color: #ffffff;
   background:
-    linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff)) padding-box,
-    linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff)) border-box;
+    @accent-gradient padding-box,
+    @accent-gradient border-box;
   border: 2px solid transparent;
   position: relative;
 }
@@ -770,7 +761,7 @@ onMounted(() => {
 }
 
 .ji-dot {
-  background: #ef4444;
+  background: @danger;
 }
 
 .yi .yj-label {
@@ -778,7 +769,7 @@ onMounted(() => {
 }
 
 .ji .yj-label {
-  color: #ef4444;
+  color: @danger;
 }
 
 .yj-list {

@@ -7,7 +7,7 @@
  *   │          │      │ widgets  │
  *   │          │      │ grid    │
  *   └──────────┘      └──────────┘ */
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import SearchBar from '@/views/search/SearchBar.vue'
 import WidgetsBar from '@/views/layout/WidgetsBar.vue'
 import SiteGrid from '@/views/sites/SiteGrid.vue'
@@ -86,6 +86,26 @@ const worldTimeOpen = ref(false)
 const previewWidget = ref(null)
 /** 预览弹窗最小化：弹窗隐藏，任务栏承接（widget 保留以便还原） */
 const previewMinimized = ref(false)
+
+/* 弹窗「首次打开才挂载」：defineAsyncComponent 的 chunk 在组件首次渲染时
+   就会下载，若常驻渲染，dialogs 分包在启动时即被拉取，懒加载形同虚设。
+   这里用 everOpen 标记做 v-if 门控；关闭后保持挂载（chunk 已缓存，
+   重挂载廉价），既保住 BaseDialog 的离场过渡，也保留弹窗内部状态 */
+const dialogMounted = reactive({})
+watch(
+  [editorOpen, settingsOpen, weatherOpen, todoOpen, calendarOpen, hotOpen, worldTimeOpen, previewWidget],
+  ([ed, set, we, to, ca, ho, wt, pw]) => {
+    if (ed) dialogMounted.editor = true
+    if (set) dialogMounted.settings = true
+    if (we) dialogMounted.weather = true
+    if (to) dialogMounted.todo = true
+    if (ca) dialogMounted.calendar = true
+    if (ho) dialogMounted.hot = true
+    if (wt) dialogMounted.worldTime = true
+    if (pw) dialogMounted.preview = true
+  },
+  { immediate: true }
+)
 /** v-model:open 适配：非空 widget 即为打开；关闭时一并退出最小化 */
 const previewOpen = computed({
   get: () => previewWidget.value !== null,
@@ -440,7 +460,9 @@ async function handleRestored() {
       @close="previewOpen = false"
     />
 
+    <!-- 弹窗「首次打开才挂载」：chunk 按需下载（见 dialogMounted 注释） -->
     <SiteEditor
+      v-if="dialogMounted.editor"
       :open="editorOpen"
       :editing="editingSite"
       @save="handleSave"
@@ -448,6 +470,7 @@ async function handleRestored() {
       @add-tool="handleAddTool"
     />
     <SettingsPanel
+      v-if="dialogMounted.settings"
       :open="settingsOpen"
       :settings="settings"
       @update="setSetting"
@@ -455,12 +478,13 @@ async function handleRestored() {
       @restored="handleRestored"
       @close="settingsOpen = false"
     />
-    <WeatherDialog v-model:open="weatherOpen" />
-    <TodoDialog v-model:open="todoOpen" />
-    <CalendarDialog v-model:open="calendarOpen" />
-    <HotDialog v-model:open="hotOpen" />
-    <WorldTimeDialog v-model:open="worldTimeOpen" />
+    <WeatherDialog v-if="dialogMounted.weather" v-model:open="weatherOpen" />
+    <TodoDialog v-if="dialogMounted.todo" v-model:open="todoOpen" />
+    <CalendarDialog v-if="dialogMounted.calendar" v-model:open="calendarOpen" />
+    <HotDialog v-if="dialogMounted.hot" v-model:open="hotOpen" />
+    <WorldTimeDialog v-if="dialogMounted.worldTime" v-model:open="worldTimeOpen" />
     <WidgetPreviewDialog
+      v-if="dialogMounted.preview"
       v-model:open="previewOpen"
       v-model:minimized="previewMinimized"
       :widget="previewWidget"
@@ -637,13 +661,13 @@ async function handleRestored() {
   }
 
   &:hover {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     color: #fff;
     border-color: transparent;
   }
 
   &.active {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     color: #fff;
     border-color: transparent;
   }

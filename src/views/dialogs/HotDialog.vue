@@ -5,7 +5,7 @@
  * - 支持全屏放大
  * - 数据源：vvhan API（带兜底）
  */
-import { watch, onMounted } from 'vue'
+import { watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useHotStore, formatHot } from '@/stores/hot'
 import BaseDialog from '@/components/BaseDialog.vue'
@@ -14,6 +14,7 @@ import {
   RiSignalWifiErrorLine,
 } from '@remixicon/vue'
 import { openExternal } from '@/utils/openExternal'
+import { formatHHmm as formatTime } from '@/utils/datetime'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -45,37 +46,26 @@ function openUrl(url) {
   openExternal(url)
 }
 
-function formatTime(d) {
-  if (!d) return ''
-  const dt = d instanceof Date ? d : new Date(d)
-  if (Number.isNaN(dt.getTime())) return ''
-  const h = String(dt.getHours()).padStart(2, '0')
-  const m = String(dt.getMinutes()).padStart(2, '0')
-  return `${h}:${m}`
-}
-
 function rankStyle(i) {
+  // 注意：这里是 JS 字符串（内联 :style），不能引用 Less 变量 @danger，须写字面量
   if (i === 0) return { background: 'linear-gradient(135deg, #ef4444, #f97316)', color: '#fff' }
   if (i === 1) return { background: 'linear-gradient(135deg, #f59e0b, #eab308)', color: '#fff' }
   if (i === 2) return { background: 'linear-gradient(135deg, #84cc16, #16a34a)', color: '#fff' }
   return null
 }
 
+// 打开时缺数据才读（缓存优先），避免每次打开都打一次网络；
+// 手动刷新走右上角刷新按钮（force=true）
+// immediate：配合父级「首次打开才挂载」门控，挂载时即为 open=true 也要触发
 watch(
   () => props.open,
   (val) => {
-    // 打开时缺数据才读（缓存优先），避免每次打开都打一次网络；
-    // 手动刷新走右上角刷新按钮（force=true）
     if (val && !data.value) {
       load(props.defaultSource, false)
     }
-  }
+  },
+  { immediate: true }
 )
-onMounted(() => {
-  if (props.open && !data.value) {
-    load(props.defaultSource, false)
-  }
-})
 </script>
 
 <template>
@@ -118,7 +108,7 @@ onMounted(() => {
         <div v-else-if="data && data.length > 0" class="hot-list">
           <div
             v-for="(item, i) in data"
-            :key="i"
+            :key="item.url || item.title"
             class="hot-item"
             @click="openUrl(item.url)"
           >
@@ -327,7 +317,7 @@ onMounted(() => {
   border-radius: 10px;
   font-size: 13px;
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
   border: none;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;

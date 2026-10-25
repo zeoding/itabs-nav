@@ -1,11 +1,12 @@
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useWeatherStore, tempLinePoints, tempRange } from '@/stores/weather'
 import BaseDialog from '@/components/BaseDialog.vue'
 import BaseSelect from '@/components/BaseSelect.vue'
 import { PROVINCES, HOT_CITIES, DEFAULT_PROVINCE, DEFAULT_CITY } from '@/data/regions'
 import { $t } from '@/composables/useI18n'
+import { formatHHmm as formatCacheTime } from '@/utils/datetime'
 import {
   RiMapPinLine,
   RiLoopLeftLine,
@@ -76,16 +77,6 @@ async function forceRefresh() {
   if (selectedCity.value) await load(selectedCity.value, true)
 }
 
-/** 缓存时间格式化（lastUpdated 可能是时间戳数字） */
-function formatCacheTime(t) {
-  if (!t) return ''
-  const d = t instanceof Date ? t : new Date(t)
-  if (Number.isNaN(d.getTime())) return ''
-  const h = String(d.getHours()).padStart(2, '0')
-  const m = String(d.getMinutes()).padStart(2, '0')
-  return `${h}:${m}`
-}
-
 async function autoLocate() {
   const result = await locate()
   if (result) syncSelects(result)
@@ -152,6 +143,8 @@ const tempRangeVal = computed(() => {
 /** 生活指数（接口直接返回 18 项，带 level/advice） */
 const lifeItems = computed(() => data.value?.life || [])
 
+// 打开时：省市回填当前城市，缺数据走缓存优先；immediate 兼容
+// 「首次打开才挂载」门控下挂载即打开的场景
 watch(
   () => props.open,
   (val) => {
@@ -159,14 +152,9 @@ watch(
       syncSelects(city.value)
       if (!data.value) loadCached()
     }
-  }
+  },
+  { immediate: true }
 )
-onMounted(() => {
-  if (props.open) {
-    syncSelects(city.value)
-    if (!data.value) loadCached()
-  }
-})
 </script>
 
 <template>
@@ -493,7 +481,7 @@ onMounted(() => {
   }
 
   &.active {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     color: #fff;
   }
 
@@ -520,15 +508,15 @@ onMounted(() => {
   padding: 10px 12px;
   margin-bottom: 14px;
   border-radius: @radius-card;
-  background: rgba(239, 68, 68, 0.07);
-  border: 1px solid rgba(239, 68, 68, 0.18);
+  background: fade(@danger, 7%);
+  border: 1px solid fade(@danger, 18%);
   flex-shrink: 0;
 }
 
 .alerts-title {
   font-size: 12px;
   font-weight: 600;
-  color: #ef4444;
+  color: @danger;
 }
 
 .alert-item {
@@ -542,7 +530,7 @@ onMounted(() => {
   font-size: 11px;
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(135deg, #ef4444, #f97316);
+  background: linear-gradient(135deg, @danger, #f97316);
   border-radius: 6px;
   padding: 2px 8px;
 }
@@ -574,7 +562,7 @@ onMounted(() => {
   padding: 0 16px;
   font-size: 13px;
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
   border: none;
   cursor: pointer;
 
@@ -636,7 +624,7 @@ onMounted(() => {
 }
 
 .error {
-  color: #ef4444;
+  color: @danger;
 }
 
 /* 当前天气 */

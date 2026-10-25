@@ -11,7 +11,7 @@
  *     </BaseDialog>
  * - 额外头部按钮经 #actions slot 注入；完全自定义标题区经 #title slot 覆盖
  */
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useDialogFullscreen } from '@/utils/fullscreenMixin'
 import { useEscapeClose } from '@/composables/useEscapeClose'
 import { $t } from '@/composables/useI18n'
@@ -38,7 +38,18 @@ const props = defineProps({
   teleport: { type: Boolean, default: true },
   fullscreenable: { type: Boolean, default: true },
 })
-const emit = defineEmits(['close'])
+const emit = defineEmits(['close', 'open'])
+
+/** 打开时通知内容区做数据加载（替代各弹窗 watch(open)+onMounted 双份样板）。
+ *  immediate：配合「首次打开才挂载」的父级 v-if 门控，挂载时即为 open=true
+ *  也要触发一次 */
+watch(
+  () => props.open,
+  (v) => {
+    if (v) emit('open')
+  },
+  { immediate: true }
+)
 
 const { isFullscreen, toggleFullscreen } = useDialogFullscreen(
   computed(() => props.open)

@@ -4,9 +4,10 @@
  * - 本地时间 + 全球主要城市实时时间（IANA 时区，Intl 格式化，无额外依赖）
  * - 打开期间每秒刷新；展示与本地时差、昼夜状态、相对日期（昨天/明天）
  */
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import BaseDialog from '@/components/BaseDialog.vue'
 import { useI18n, $t } from '@/composables/useI18n'
+import { pad2 } from '@/utils/datetime'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -73,15 +74,14 @@ function stopTicking() {
     timer = null
   }
 }
+// 开/关时钟计时；immediate 兼容「首次打开才挂载」门控下挂载即打开的场景
 watch(
   () => props.open,
   (val) => {
     val ? startTicking() : stopTicking()
-  }
+  },
+  { immediate: true }
 )
-onMounted(() => {
-  if (props.open) startTicking()
-})
 onBeforeUnmount(stopTicking)
 
 /* ---------------- 时区计算 ---------------- */
@@ -165,13 +165,12 @@ const cityGroups = computed(() =>
 /** 本地时间信息 */
 const localInfo = computed(() => {
   const d = now.value
-  const pad = (n) => String(n).padStart(2, '0')
   const weekday = weekdayFmt.value.format(d)
   const dateStr = lang.value === 'en'
     ? `${d.getMonth() + 1}/${d.getDate()}`
     : `${d.getMonth() + 1}月${d.getDate()}日`
   return {
-    time: `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`,
+    time: `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`,
     date: `${dateStr} ${weekday}`,
     zone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
   }
