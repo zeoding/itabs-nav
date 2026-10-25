@@ -78,7 +78,9 @@ onUnmounted(() => {
 
 <style scoped lang="less">
 /* 时钟卡片：暖橙渐变（等宽网格下问候语纵向排列在时间下方，避免英文裁切）*/
-.widget-clock {
+/* 双类提高优先级：父组件 WidgetsBar 的 .widget { cursor: default } 与本规则
+   同优先级，而抽成子组件后样式注入顺序在父之前，单类会被 default 覆盖 */
+.widget.widget-clock {
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;

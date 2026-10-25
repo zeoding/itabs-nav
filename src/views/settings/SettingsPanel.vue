@@ -59,10 +59,16 @@ function movePill() {
   if (!btn || !btn.offsetHeight) return
   pillStyle.value = { top: `${btn.offsetTop}px`, height: `${btn.offsetHeight}px`, opacity: 1 }
 }
-watch([() => props.open, tab, lang], async () => {
-  await nextTick()
-  movePill()
-})
+watch(
+  [() => props.open, tab, lang],
+  async () => {
+    await nextTick()
+    movePill()
+  },
+  // immediate：配合「首次打开才挂载」门控，挂载时即为 open=true 也要量算一次，
+  // 否则首次打开指示条停留在初始透明态（选中 tab 无背景、文字看不清）
+  { immediate: true }
+)
 
 /* 子组件事件透传（保持对外接口不变） */
 function forwardUpdate(key, value) {
@@ -71,7 +77,8 @@ function forwardUpdate(key, value) {
 </script>
 
 <template>
-  <Transition name="drawer">
+  <!-- appear：配合「首次打开才挂载」门控，挂载时即为 open=true 也要播进场动画 -->
+  <Transition name="drawer" appear>
     <div v-if="open" class="drawer-mask" @click.self="emit('close')">
       <aside class="drawer glass" @click.stop>
         <!-- 左侧侧边栏：标题 + Tab 列表 -->

@@ -126,7 +126,10 @@ watch(
   async () => {
     await nextTick()
     movePill()
-  }
+  },
+  // immediate：配合「首次打开才挂载」门控，挂载时即为 open=true 也要量算一次，
+  // 否则首次打开指示条停留在初始透明态（选中 tab 无背景）
+  { immediate: true }
 )
 function onWinResize() {
   movePill()

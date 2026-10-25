@@ -76,7 +76,8 @@ const dlgVars = computed(() => ({
 
 <template>
   <Teleport to="body" :disabled="!teleport">
-    <Transition name="modal-pop">
+    <!-- appear：配合「首次打开才挂载」门控，挂载时即为 open=true 也要播进场动画 -->
+    <Transition name="modal-pop" appear>
       <div v-if="open" class="modal-mask" :style="maskVars" @click.self="onClose">
         <div class="dialog glass" :class="{ 'is-fullscreen': isFullscreen }" :style="dlgVars">
           <header class="dialog-header">
