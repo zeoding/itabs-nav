@@ -51,10 +51,13 @@ export function getLunarLabel(date) {
  * 给日期格使用的简短标签
  * - 优先：节气 / 节日
  * - 否则：农历日（如"初一"、"廿三"）
+ * @param {Date} date
+ * @param {Array} [precomputed] 可选，调用方已算好的 getFestivals(date) 结果，
+ *   供批量渲染（日历 42 格）复用，避免同一日期重复做 lunar 转换
  */
-export function getCellLabel(date) {
+export function getCellLabel(date, precomputed) {
   const d = date instanceof Date ? date : new Date(date)
-  const fests = getFestivals(d)
+  const fests = precomputed ?? getFestivals(d)
   if (fests.length > 0) {
     // 优先级：节气 > 农历节日 > 阳历节日
     const term = fests.find((f) => f.type === 'term')

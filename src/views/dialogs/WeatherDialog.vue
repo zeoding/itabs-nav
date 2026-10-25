@@ -1,14 +1,14 @@
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useWeatherStore, tempLinePoints, tempRange } from '@/stores/weather'
 import BaseDialog from '@/components/BaseDialog.vue'
+import BaseSelect from '@/components/BaseSelect.vue'
 import { PROVINCES, HOT_CITIES, DEFAULT_PROVINCE, DEFAULT_CITY } from '@/data/regions'
 import { $t } from '@/composables/useI18n'
 import {
   RiMapPinLine,
   RiLoopLeftLine,
-  RiArrowDownSLine,
 } from '@remixicon/vue'
 
 const props = defineProps({
@@ -25,57 +25,18 @@ const selectedCity = ref(DEFAULT_CITY)
 const currentCities = computed(
   () => PROVINCES.find((p) => p.name === selectedProvince.value)?.cities || []
 )
+const provinceNames = computed(() => PROVINCES.map((p) => p.name))
+const cityNames = computed(() => currentCities.value)
 
-// 自定义下拉状态（可过滤，原生 select 样式不可控）
-const provinceOpen = ref(false)
-const cityOpen = ref(false)
-const provinceQuery = ref('')
-const cityQuery = ref('')
-const filteredProvinces = computed(() => {
-  const q = provinceQuery.value.trim()
-  if (!q) return PROVINCES
-  return PROVINCES.filter((p) => p.name.includes(q))
-})
-const filteredCities = computed(() => {
-  const q = cityQuery.value.trim()
-  if (!q) return currentCities.value
-  return currentCities.value.filter((c) => c.includes(q))
-})
-function toggleProvince() {
-  provinceOpen.value = !provinceOpen.value
-  cityOpen.value = false
-  provinceQuery.value = ''
-}
-function toggleCity() {
-  cityOpen.value = !cityOpen.value
-  provinceOpen.value = false
-  cityQuery.value = ''
-}
-function pickProvince(name) {
-  selectedProvince.value = name
+/** 省份切换：重置城市到该省第一个 + 读缓存优先 */
+function onProvincePicked() {
   onProvinceChange()
-  provinceOpen.value = false
   loadCached()
 }
-function pickCity(name) {
-  selectedCity.value = name
-  cityOpen.value = false
+/** 城市切换：读缓存优先（命中当天缓存零请求）；手动点查询/刷新才强制走网络 */
+function onCityPicked() {
   loadCached()
 }
-/** 点击外部关闭下拉 */
-function onDocClick(e) {
-  if (!provinceOpen.value && !cityOpen.value) return
-  if (!e.target.closest('.w-sel-wrap')) {
-    provinceOpen.value = false
-    cityOpen.value = false
-  }
-}
-onMounted(() => {
-  document.addEventListener('mousedown', onDocClick)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', onDocClick)
-})
 
 /** 去行政区划后缀后比对（深圳市→深圳，兴安盟→兴安） */
 function normName(s) {
@@ -142,8 +103,6 @@ async function pickHot(name) {
 }
 
 function close() {
-  provinceOpen.value = false
-  cityOpen.value = false
   emit('update:open', false)
 }
 
@@ -223,50 +182,30 @@ onMounted(() => {
     <template #default="{ fullscreen }">
       <div class="w-root" :class="{ 'is-fullscreen': fullscreen }">
         <div class="city-row">
-          <div class="w-sel-wrap" :class="{ open: provinceOpen }">
-            <button class="w-sel-btn" :aria-label="$t('weather.province')" @click="toggleProvince">
-              <span class="w-sel-text">{{ selectedProvince }}</span>
-              <RiArrowDownSLine size="14" class="w-sel-arrow" aria-hidden="true" />
-            </button>
-            <div v-if="provinceOpen" class="w-sel-panel glass" @click.stop>
-              <input
-                v-model="provinceQuery"
-                class="w-sel-filter"
-                :placeholder="$t('weather.searchRegion')"
-              />
-              <div class="w-sel-list">
-                <button
-                  v-for="p in filteredProvinces"
-                  :key="p.name"
-                  :class="['w-sel-opt', { active: p.name === selectedProvince }]"
-                  @click="pickProvince(p.name)"
-                >{{ p.name }}</button>
-                <div v-if="!filteredProvinces.length" class="w-sel-empty">{{ $t('weather.noResult') }}</div>
-              </div>
-            </div>
-          </div>
-          <div class="w-sel-wrap" :class="{ open: cityOpen }">
-            <button class="w-sel-btn" :aria-label="$t('weather.cityLabel')" @click="toggleCity">
-              <span class="w-sel-text">{{ selectedCity }}</span>
-              <RiArrowDownSLine size="14" class="w-sel-arrow" aria-hidden="true" />
-            </button>
-            <div v-if="cityOpen" class="w-sel-panel glass" @click.stop>
-              <input
-                v-model="cityQuery"
-                class="w-sel-filter"
-                :placeholder="$t('weather.searchRegion')"
-              />
-              <div class="w-sel-list">
-                <button
-                  v-for="c in filteredCities"
-                  :key="c"
-                  :class="['w-sel-opt', { active: c === selectedCity }]"
-                  @click="pickCity(c)"
-                >{{ c }}</button>
-                <div v-if="!filteredCities.length" class="w-sel-empty">{{ $t('weather.noResult') }}</div>
-              </div>
-            </div>
-          </div>
+          <BaseSelect
+            v-model="selectedProvince"
+            :options="provinceNames"
+            variant="box"
+            layout="list"
+            filterable
+            :filter-placeholder="$t('weather.searchRegion')"
+            :aria-label="$t('weather.province')"
+            @select="onProvincePicked"
+          >
+            <template #empty>{{ $t('weather.noResult') }}</template>
+          </BaseSelect>
+          <BaseSelect
+            v-model="selectedCity"
+            :options="cityNames"
+            variant="box"
+            layout="list"
+            filterable
+            :filter-placeholder="$t('weather.searchRegion')"
+            :aria-label="$t('weather.cityLabel')"
+            @select="onCityPicked"
+          >
+            <template #empty>{{ $t('weather.noResult') }}</template>
+          </BaseSelect>
           <button class="locate-btn" @click="autoLocate" :disabled="locating || loading" v-tip="$t('weather.locateTitle')" :aria-label="$t('weather.locateTitle')">
             <RiMapPinLine v-if="!locating" size="16" aria-hidden="true" />
             <span v-else></span>
@@ -520,135 +459,7 @@ onMounted(() => {
   margin-bottom: 14px;
   flex-shrink: 0;
 }
-/* 自定义地区下拉（可过滤，原生 select 不可控） */
-.w-sel-wrap {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-
-  &.open {
-    .w-sel-btn {
-      border-color: @accent;
-      background: color-mix(in srgb, @accent 0.1%, transparent);
-      color: @accent;
-    }
-
-    .w-sel-arrow {
-      transform: rotate(180deg);
-      color: @accent;
-    }
-  }
-}
-
-.w-sel-btn {
-  flex: 1;
-  min-width: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  color: @text;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid color-mix(in srgb, @accent 0.18%, transparent);
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
-
-  &:hover {
-    background: color-mix(in srgb, @accent 0.06%, transparent);
-  }
-}
-
-.w-sel-text {
-  .ellipsis();
-}
-
-.w-sel-arrow {
-  display: inline-flex;
-  flex-shrink: 0;
-  color: @text-soft;
-  transition: transform 0.2s ease;
-}
-
-.w-sel-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  min-width: 100%;
-  width: max-content;
-  max-width: 230px;
-  z-index: 60;
-  border-radius: 12px;
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  box-shadow: 0 8px 32px rgba(31, 41, 55, 0.18);
-  animation: w-sel-fade 0.16s ease;
-}
-
-@keyframes w-sel-fade {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.w-sel-filter {
-  border: 1px solid color-mix(in srgb, @accent 0.18%, transparent);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.7);
-  color: @text;
-  padding: 7px 10px;
-  font-size: 12px;
-  outline: none;
-  width: 100%;
-
-  &:focus {
-    border-color: @accent;
-  }
-}
-
-.w-sel-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  max-height: 208px;
-  overflow-y: auto;
-  .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent));
-}
-
-.w-sel-opt {
-  text-align: left;
-  padding: 7px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  color: @text;
-  background: transparent;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-  white-space: nowrap;
-
-  &:hover {
-    background: color-mix(in srgb, @accent 0.1%, transparent);
-    color: @accent;
-  }
-
-  &.active {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
-    color: #fff;
-    font-weight: 600;
-  }
-}
-
-.w-sel-empty {
-  text-align: center;
-  font-size: 12px;
-  color: @text-soft;
-  padding: 12px 8px;
-}
+/* 省市下拉组件本体样式在 BaseSelect.vue（box/list 变体） */
 /* 热门城市行 */
 .hot-row {
   display: flex;

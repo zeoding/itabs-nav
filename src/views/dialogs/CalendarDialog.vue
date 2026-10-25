@@ -4,15 +4,15 @@
  *  左侧：月份+ 事件列表
  *  右侧：今日详情（公历、农历、节日、星座、宜、忌? *  支持全屏放大
  */
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useEventsStore } from '@/stores/events'
 import BaseDialog from '@/components/BaseDialog.vue'
+import BaseSelect from '@/components/BaseSelect.vue'
 import { useI18n, $t } from '@/composables/useI18n'
 import {
   RiArrowLeftSLine,
   RiArrowRightSLine,
-  RiArrowDownSLine,
   RiArrowLeftDoubleLine,
   RiArrowRightDoubleLine,
 } from '@remixicon/vue'
@@ -24,7 +24,6 @@ import {
   getDayAlmanac,
   getCellLabel,
   isWeekend,
-  hasFestival,
   getHoliday,
 } from '@/utils/lunar'
 
@@ -74,54 +73,22 @@ const yearOptions = computed(() => {
 const currentYear = new Date().getFullYear()
 const currentMonth = new Date().getMonth() + 1
 
-/** 同步下拉值与 cursor */
-const yearSel = ref(cursor.value.getFullYear())
-const monthSel = ref(cursor.value.getMonth() + 1)
-watch([year, month], ([y, m]) => {
-  yearSel.value = y
-  monthSel.value = m
-})
+/** 月份下拉选项：{ value, label }，label 走 i18n 月份名 */
+const monthOptions = computed(() =>
+  $t('calendar.months').map((name, i) => ({ value: i + 1, label: name }))
+)
 
-/** 自定义下拉状态 */
-const yearOpen = ref(false)
-const monthOpen = ref(false)
-const yearBaseOffset = ref(0) // 年份翻页偏移（箭头 ±10 年翻页）
-function toggleYear() {
-  yearOpen.value = !yearOpen.value
-  monthOpen.value = false
-  yearBaseOffset.value = 0
-}
-function toggleMonth() {
-  monthOpen.value = !monthOpen.value
-  yearOpen.value = false
-}
+/** 年份下拉翻页偏移（面板打开时归零，箭头 ±10 年翻页） */
+const yearBaseOffset = ref(0)
 function pickYear(y) {
   cursor.value = new Date(y, month.value - 1, 1)
-  yearOpen.value = false
 }
 function pickMonth(m) {
   cursor.value = new Date(year.value, m - 1, 1)
-  monthOpen.value = false
 }
 function jumpYears(delta) {
   yearBaseOffset.value += delta
 }
-
-/** 点击外部关闭 */
-function onDocClick(e) {
-  if (!yearOpen.value && !monthOpen.value) return
-  const wrap = e.target.closest('.sel-wrap')
-  if (!wrap) {
-    yearOpen.value = false
-    monthOpen.value = false
-  }
-}
-onMounted(() => {
-  document.addEventListener('mousedown', onDocClick)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', onDocClick)
-})
 
 /** 生成 6×7 网格 */
 const grid = computed(() => {
@@ -150,27 +117,43 @@ function goToday() {
   selectedDate.value = formatDate(t)
 }
 
-function pickDate(d) {
-  selectedDate.value = formatDate(d)
+function pickDate(cell) {
+  selectedDate.value = cell.key
 }
 
-const isToday = (d) => formatDate(d) === formatDate(new Date())
-const isSelected = (d) => formatDate(d) === selectedDate.value
 const isCurrentMonth = (d) => d.getMonth() === month.value - 1
 
-/** 日期格子里要展示的节日信息（最多2 个） */
-function dayFestivals(d) {
-  return getFestivals(d)
-}
+/** 弹窗生命周期内的「今天」标记（跨天场景极少，不值当为它加重算逻辑） */
+const todayKey = formatDate(new Date())
 
-/** 每个格子的法定假日/补班标记（'休' | '班' | ''），与 grid 一一对应 */
-const holidayMarks = computed(() =>
-  grid.value.map((d) => {
+/**
+ * 42 格视图模型：每格的标签/节日/假日/事件点在此一次性算好。
+ * 此前模板对每格重复调用 getCellLabel ×3、getFestivals ×2、hasFestival，
+ * 单次渲染约 200+ 次 lunar-javascript 重算，点选/翻月都会全格重算。
+ * 注意：选中态依赖 selectedDate，必须留在模板（cell.key === selectedDate），
+ * 不能进本 computed，否则点一下日期就触发 42 格 lunar 全量重算。
+ */
+const cells = computed(() => {
+  const eventDates = new Set(events.value.map((e) => e.date))
+  return grid.value.map((d) => {
+    const key = formatDate(d)
+    const fests = getFestivals(d)
     const h = getHoliday(d)
-    if (!h) return ''
-    return h.work ? '班' : '休'
+    return {
+      date: d,
+      key,
+      day: d.getDate(),
+      otherMonth: !isCurrentMonth(d),
+      today: key === todayKey,
+      weekend: isWeekend(d),
+      festival: fests.length > 0,
+      label: getCellLabel(d, fests),
+      festivalsText: fests.map((f) => f.name).join(' / '),
+      holiday: h ? (h.work ? '班' : '休') : '',
+      hasEvent: eventDates.has(key),
+    }
   })
-)
+})
 
 function close() {
   emit('update:open', false)
@@ -224,13 +207,17 @@ onMounted(() => {
                 <RiArrowLeftSLine size="18" aria-hidden="true" />
               </button>
               <div class="month-label">
-                <!-- 自定义年份下拉?-->
-                <div class="sel-wrap" :class="{ open: yearOpen }">
-                  <button class="sel-btn" @click="toggleYear">
-                    <span>{{ $t('calendar.yearFormat', { y: year }) }}</span>
-                    <RiArrowDownSLine size="14" class="sel-arrow" aria-hidden="true" />
-                  </button>
-                  <div v-if="yearOpen" class="sel-panel" @click.stop>
+                <!-- 年份下拉：触发器显示「YYYY年」，面板头部 ±10 年跳页（BaseSelect 自管开关/点击外部关闭） -->
+                <BaseSelect
+                  :model-value="year"
+                  :options="yearOptions"
+                  :current="currentYear"
+                  :aria-label="$t('calendar.selectYear')"
+                  @update:model-value="pickYear"
+                  @open="yearBaseOffset = 0"
+                >
+                  <template #display="{ value }">{{ $t('calendar.yearFormat', { y: value }) }}</template>
+                  <template #header>
                     <div class="sel-panel-header">
                       <button class="panel-jump" @click="jumpYears(-10)" :aria-label="$t('calendar.prevDecade')">
                         <RiArrowLeftDoubleLine size="14" aria-hidden="true" />
@@ -240,33 +227,16 @@ onMounted(() => {
                         <RiArrowRightDoubleLine size="14" aria-hidden="true" />
                       </button>
                     </div>
-                    <div class="sel-grid">
-                      <button
-                        v-for="y in yearOptions"
-                        :key="y"
-                        :class="['sel-opt', { active: y === year, current: y === currentYear }]"
-                        @click="pickYear(y)"
-                      >{{ y }}</button>
-                    </div>
-                  </div>
-                </div>
-                <!-- 自定义月份下拉-->
-                <div class="sel-wrap" :class="{ open: monthOpen }">
-                  <button class="sel-btn" @click="toggleMonth">
-                    <span>{{ $t('calendar.months')[month - 1] }}</span>
-                    <RiArrowDownSLine size="14" class="sel-arrow" aria-hidden="true" />
-                  </button>
-                  <div v-if="monthOpen" class="sel-panel" @click.stop>
-                    <div class="sel-grid month-grid">
-                      <button
-                        v-for="m in 12"
-                        :key="m"
-                        :class="['sel-opt', { active: m === month, current: m === currentMonth }]"
-                        @click="pickMonth(m)"
-                      >{{ $t('calendar.months')[m - 1] }}</button>
-                    </div>
-                  </div>
-                </div>
+                  </template>
+                </BaseSelect>
+                <!-- 月份下拉 -->
+                <BaseSelect
+                  :model-value="month"
+                  :options="monthOptions"
+                  :current="currentMonth"
+                  :aria-label="$t('calendar.months')"
+                  @update:model-value="pickMonth"
+                />
               </div>
               <button class="nav-btn" v-tip="$t('calendar.nextMonth')" :aria-label="$t('calendar.nextMonth')" @click="nextMonth">
                 <RiArrowRightSLine size="18" aria-hidden="true" />
@@ -280,38 +250,38 @@ onMounted(() => {
 
             <div class="days">
               <button
-                v-for="(d, i) in grid"
-                :key="i"
+                v-for="cell in cells"
+                :key="cell.key"
                 :class="[
                   'day',
                   {
-                    'other-month': !isCurrentMonth(d),
-                    today: isToday(d),
-                    selected: isSelected(d),
-                    weekend: isWeekend(d),
-                    festival: hasFestival(d),
-                    xiu: holidayMarks[i] === '休',
-                    ban: holidayMarks[i] === '班',
+                    'other-month': cell.otherMonth,
+                    today: cell.today,
+                    selected: cell.key === selectedDate,
+                    weekend: cell.weekend,
+                    festival: cell.festival,
+                    xiu: cell.holiday === '休',
+                    ban: cell.holiday === '班',
                   },
                 ]"
-                :data-cell-kind="getCellLabel(d).kind"
-                @click="pickDate(d)"
+                :data-cell-kind="cell.label.kind"
+                @click="pickDate(cell)"
               >
-                <span class="day-num">{{ d.getDate() }}</span>
+                <span class="day-num">{{ cell.day }}</span>
                 <span
                   class="cell-label"
-                  :class="`kind-${getCellLabel(d).kind}`"
-                  v-tip="dayFestivals(d).map(f => f.name).join(' / ')"
+                  :class="`kind-${cell.label.kind}`"
+                  v-tip="cell.festivalsText"
                 >
-                  {{ getCellLabel(d).text }}
+                  {{ cell.label.text }}
                 </span>
                 <span
-                  v-if="holidayMarks[i]"
+                  v-if="cell.holiday"
                   class="day-tag"
-                  :class="holidayMarks[i] === '休' ? 'tag-xiu' : 'tag-ban'"
-                >{{ holidayMarks[i] }}</span>
+                  :class="cell.holiday === '休' ? 'tag-xiu' : 'tag-ban'"
+                >{{ cell.holiday }}</span>
                 <span
-                  v-if="events.some((e) => e.date === formatDate(d))"
+                  v-if="cell.hasEvent"
                   class="dot"
                 ></span>
               </button>
@@ -473,84 +443,7 @@ onMounted(() => {
   gap: 6px;
 }
 
-/* 自定义下拉*/
-.sel-wrap {
-  position: relative;
-  display: inline-block;
-
-  &.open {
-    .sel-btn {
-      background: color-mix(in srgb, @accent 0.15%, transparent);
-      color: @accent;
-    }
-
-    .sel-arrow {
-      transform: rotate(180deg);
-      color: @accent;
-    }
-  }
-}
-
-.sel-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
-  color: @text;
-  background: transparent;
-  transition: background 0.15s ease;
-  cursor: pointer;
-
-  &:hover {
-    background: color-mix(in srgb, @accent 0.08%, transparent);
-  }
-}
-
-.sel-arrow {
-  display: inline-flex;
-  transition: transform 0.2s ease;
-  color: @text-soft;
-}
-
-.sel-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
-  min-width: 220px;
-  padding: 8px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.96);
-  .glass-blur(20px, 180%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 8px 32px rgba(31, 41, 55, 0.18);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  animation: sel-fade 0.16s ease;
-
-  /* 浮层小箭头：指向触发按钮 */
-  &::after {
-    content: '';
-    position: absolute;
-    top: -6px;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top: 0;
-    border-bottom-color: rgba(255, 255, 255, 0.96);
-  }
-}
-
-@keyframes sel-fade {
-  from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
-  to { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-
+/* 下拉组件本体样式在 BaseSelect.vue；此处仅保留面板头插槽内容样式 */
 .sel-panel-header {
   display: flex;
   align-items: center;
@@ -575,47 +468,6 @@ onMounted(() => {
 
   &:hover {
     background: color-mix(in srgb, @accent 0.18%, transparent);
-  }
-}
-
-.sel-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  /* 年份 12 项 4 列 3 行，紧凑无滚动 */
-  max-height: 210px;
-  overflow-y: auto;
-  padding-right: 2px;
-  .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent));
-
-  &.month-grid {
-    grid-template-columns: repeat(4, 1fr);
-    min-width: 200px;
-  }
-}
-
-.sel-opt {
-  padding: 7px 4px;
-  border-radius: 6px;
-  font-size: 12px;
-  color: @text;
-  background: transparent;
-  transition: background 0.15s ease, color 0.15s ease;
-  cursor: pointer;
-
-  &:hover {
-    background: color-mix(in srgb, @accent 0.12%, transparent);
-    color: @accent;
-  }
-
-  &.active {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
-    color: #fff;
-    font-weight: 600;
-  }
-
-  &.current:not(.active) {
-    border: 1px solid color-mix(in srgb, @accent 0.4%, transparent);
   }
 }
 
