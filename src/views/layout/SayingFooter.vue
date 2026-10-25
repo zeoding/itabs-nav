@@ -13,6 +13,7 @@ import { storeToRefs } from 'pinia'
 import { useSayingStore } from '@/stores/saying'
 import { useMessage } from '@/composables/useMessage'
 import { $t } from '@/composables/useI18n'
+import { copyText } from '@/utils/clipboard'
 import { RiFileCopyLine, RiCheckLine, RiRefreshLine } from '@remixicon/vue'
 
 const sayingStore = useSayingStore()
@@ -36,24 +37,12 @@ async function onCopy(e) {
   e.preventDefault()
   const text = buildCopyText()
   if (!text) return
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text)
-    } else {
-      const ta = document.createElement('textarea')
-      ta.value = text
-      ta.style.position = 'fixed'
-      ta.style.opacity = '0'
-      document.body.appendChild(ta)
-      ta.select()
-      document.execCommand('copy')
-      document.body.removeChild(ta)
-    }
+  const ok = await copyText(text)
+  if (ok) {
     copied.value = true
     setTimeout(() => { copied.value = false }, 1200)
     message.success($t('saying.copied'))
-  } catch (err) {
-    console.error('[SayingFooter] 复制失败', err)
+  } else {
     message.error($t('saying.copyFail'))
   }
 }

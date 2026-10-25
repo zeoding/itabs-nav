@@ -23,6 +23,7 @@ import jsQR from 'jsqr'
 import { useMessage } from '@/composables/useMessage'
 import { $t } from '@/composables/useI18n'
 import { useFileDrop } from '@/composables/useFileDrop'
+import { copyText as copyToClipboard } from '@/utils/clipboard'
 import { isSafeHttpUrl, openExternal } from '@/utils/openExternal'
 import { RiDownloadLine, RiFileCopyLine, RiImageAddLine, RiImageLine } from '@remixicon/vue'
 
@@ -254,12 +255,9 @@ function download() {
 
 async function copyText(val) {
   if (!val) return
-  try {
-    await navigator.clipboard.writeText(val)
-    message.success($t('qrCode.copied'))
-  } catch {
-    message.error($t('qrCode.copyFail'))
-  }
+  const ok = await copyToClipboard(val)
+  if (ok) message.success($t('qrCode.copied'))
+  else message.error($t('qrCode.copyFail'))
 }
 
 /* ---------------- Logo 上传 ---------------- */
@@ -383,13 +381,20 @@ const { isDragging, onDragEnter, onDragLeave, onDrop } = useFileDrop(decodeFile,
 
 /* ---------------- 生命周期 ---------------- */
 
+/* 输入防抖 200ms（与 EncodeDecodePreview/SplitTextPreview 一致）：
+   每敲一个字符就全量重编二维码 + 重绘 canvas，长文本时会持续阻塞主线程；
+   色彩/尺寸等非文本参数变化通常单次触发，防抖带来的延迟无感知 */
+let renderTimer = null
 watch(
   [
     text, ecLevel, outSize, margin,
     fgColor, bgColor, gradient, gradColor, eyeColor, moduleShape, eyeStyle,
     logoImg, logoRatio,
   ],
-  () => nextTick(renderQr)
+  () => {
+    clearTimeout(renderTimer)
+    renderTimer = setTimeout(() => nextTick(renderQr), 200)
+  }
 )
 
 onMounted(() => {

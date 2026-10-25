@@ -7,8 +7,9 @@
  * - 当前激活的 rail 按钮高亮
  * - 右键自定义按钮可弹出编辑/移除菜单
  */
-import { ref, onMounted, onBeforeUnmount, computed, markRaw } from 'vue'
+import { ref, onMounted, computed, markRaw } from 'vue'
 import { useConfirm } from '@/composables/useConfirm'
+import { useClickOutside } from '@/composables/useClickOutside'
 import { $t } from '@/composables/useI18n'
 import BaseDialog from '@/components/BaseDialog.vue'
 import {
@@ -197,18 +198,11 @@ async function removeFromCtx() {
   closeCtx()
 }
 
-/** 点击其它地方关闭右键菜单 */
-function onDocClick(e) {
-  if (!ctxMenu.value) return
-  const menu = document.querySelector('.ctx-menu')
-  if (menu && !menu.contains(e.target)) closeCtx()
-}
-onMounted(() => {
-  document.addEventListener('mousedown', onDocClick)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', onDocClick)
-})
+/** 点击其它地方关闭右键菜单（ctxMenu 有值且菜单已渲染才参与判定） */
+useClickOutside(
+  () => (ctxMenu.value ? [document.querySelector('.ctx-menu')] : []),
+  closeCtx
+)
 
 const iconPresets = [
   'RiFolderLine',

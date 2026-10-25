@@ -6,9 +6,11 @@
  * - 中间输入+ 右侧搜索按钮
  * - 点击外部自动关闭下拉
  */
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import EngineEditor from '@/views/search/EngineEditor.vue'
+import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
+// 引擎编辑器懒加载：静态引入会连带把 dialogs 分包拽成首屏依赖
+const EngineEditor = defineAsyncComponent(() => import('@/views/search/EngineEditor.vue'))
 import { useConfirm } from '@/composables/useConfirm'
+import { useClickOutside } from '@/composables/useClickOutside'
 import { $t } from '@/composables/useI18n'
 import { loadEngineSvg } from '@/utils/thesvg'
 import { openExternal } from '@/utils/openExternal'
@@ -23,6 +25,11 @@ const emit = defineEmits(['select', 'add', 'remove'])
 const keyword = ref('')
 const dropdownOpen = ref(false)
 const editorOpen = ref(false)
+/** 编辑器首次打开才挂载（触发对应 chunk 下载），之后保持挂载复用 */
+const editorLoaded = ref(false)
+watch(editorOpen, (v) => {
+  if (v) editorLoaded.value = true
+})
 const rootRef = ref(null)
 
 const currentEngine = computed(
@@ -68,19 +75,12 @@ async function removeEngine(engine, event) {
   if (ok) emit('remove', engine.key)
 }
 
-function onDocClick(e) {
-  if (!rootRef.value) return
-  if (!rootRef.value.contains(e.target)) {
+useClickOutside(
+  () => (dropdownOpen.value ? [rootRef.value] : []),
+  () => {
     dropdownOpen.value = false
   }
-}
-
-onMounted(() => {
-  document.addEventListener('mousedown', onDocClick)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', onDocClick)
-})
+)
 
 function search() {
   const kw = keyword.value.trim()
@@ -161,6 +161,7 @@ function search() {
     </Transition>
 
     <EngineEditor
+      v-if="editorLoaded"
       v-model:open="editorOpen"
       :existing-engines="engines"
       @save="emit('add', $event)"

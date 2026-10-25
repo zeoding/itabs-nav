@@ -1,9 +1,11 @@
 <script setup>
 
-import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { SITE_SIZES } from '@/db'
 import { isToolKind } from '@/config/tools'
 import { RiEditLine, RiDeleteBinLine } from '@remixicon/vue'
+import { useClickOutside } from '@/composables/useClickOutside'
+import { useEscapeClose } from '@/composables/useEscapeClose'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -69,19 +71,12 @@ async function computePosition() {
 
 const currentSize = computed(() => props.site?.size || '1x1')
 
-function onDocMousedown(e) {
-  if (!menuRef.value) return
-  if (!menuRef.value.contains(e.target)) emit('close')
-}
-
-function onEsc(e) {
-  if (e.key === 'Escape') emit('close')
-}
-
-onMounted(() => {
-  document.addEventListener('mousedown', onDocMousedown)
-  document.addEventListener('keydown', onEsc)
-})
+// 点击菜单外 / ESC 关闭（menuRef 仅在 open 时存在，天然带守卫）
+useClickOutside(
+  () => [menuRef.value],
+  () => emit('close')
+)
+useEscapeClose(computed(() => props.open), () => emit('close'))
 
 // 每次打开时重新计算位置（基于最新的 anchorRect）
 
@@ -91,10 +86,6 @@ watch(
     if (val) computePosition()
   }
 )
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', onDocMousedown)
-  document.removeEventListener('keydown', onEsc)
-})
 
 function doEdit() {
   if (isTool.value) return

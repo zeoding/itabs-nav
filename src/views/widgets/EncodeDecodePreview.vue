@@ -18,6 +18,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import CryptoJS from 'crypto-js'
 import { useMessage } from '@/composables/useMessage'
 import { $t } from '@/composables/useI18n'
+import { copyText } from '@/utils/clipboard'
 import * as rsa from './encodeRsa'
 import {
   base64Encode, base64Decode,
@@ -251,25 +252,9 @@ onUnmounted(() => clearTimeout(timer))
 
 async function copyOut() {
   if (!output.value) return
-  try {
-    await navigator.clipboard.writeText(output.value)
-    message.success($t('encodeDecode.copied'))
-  } catch {
-    // 非 HTTPS / 无权限时的兜底
-    try {
-      const ta = document.createElement('textarea')
-      ta.value = output.value
-      ta.style.position = 'fixed'
-      ta.style.opacity = '0'
-      document.body.appendChild(ta)
-      ta.select()
-      document.execCommand('copy')
-      document.body.removeChild(ta)
-      message.success($t('encodeDecode.copied'))
-    } catch {
-      message.error($t('encodeDecode.copyFail'))
-    }
-  }
+  const ok = await copyText(output.value)
+  if (ok) message.success($t('encodeDecode.copied'))
+  else message.error($t('encodeDecode.copyFail'))
 }
 
 /** 结果回填到输入并翻转方向（解码 → 编码 的往返验证很常用） */

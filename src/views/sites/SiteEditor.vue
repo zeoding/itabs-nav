@@ -9,11 +9,12 @@
  *         emit('add-tool', 'split-text') → 父组件写入当前面板站点(1x1)
  * - 支持全屏放大
  */
-import { ref, watch, computed, nextTick, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
+import { ref, watch, computed, nextTick, defineAsyncComponent } from 'vue'
 import BaseDialog from '@/components/BaseDialog.vue'
 import { $t } from '@/composables/useI18n'
 import { useMessage } from '@/composables/useMessage'
 import { useEscapeClose } from '@/composables/useEscapeClose'
+import { useClickOutside } from '@/composables/useClickOutside'
 import { TOOL_KINDS, TOOLS, TOOLS_BY_KIND } from '@/config/tools'
 import { FAVICON_API } from '@/config/api'
 import { loadEngineSvg, THESVG_PREFIX, SITE_ICON_PRESETS } from '@/utils/thesvg'
@@ -177,18 +178,11 @@ function isPresetSelected(slug) {
   return form.value.icon === `${THESVG_PREFIX}${slug}`
 }
 
-function onPresetDocDown(e) {
-  if (!presetOpen.value) return
-  if (popRef.value?.contains(e.target)) return
-  if (triggerRef.value?.contains(e.target)) return
-  closePresets()
-}
-onMounted(() => {
-  document.addEventListener('mousedown', onPresetDocDown)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', onPresetDocDown)
-})
+// 图标预设下拉：点击外部 / ESC 关闭
+useClickOutside(
+  () => (presetOpen.value ? [popRef.value, triggerRef.value] : []),
+  closePresets
+)
 useEscapeClose(presetOpen, closePresets)
 watch(
   () => props.open,

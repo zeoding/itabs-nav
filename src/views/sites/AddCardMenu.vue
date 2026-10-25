@@ -4,8 +4,10 @@
  * - 位置基于 add-card bounding rect
  * - 单一项：根据当前 editMode 切换文案（编辑主页/ 完成编辑）
  */
-import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, computed } from 'vue'
 import { RiCheckLine, RiEditLine } from '@remixicon/vue'
+import { useClickOutside } from '@/composables/useClickOutside'
+import { useEscapeClose } from '@/composables/useEscapeClose'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -49,22 +51,12 @@ async function computePosition() {
   pos.value = { left, top }
 }
 
-function onDocMousedown(e) {
-  if (!menuRef.value) return
-  if (!menuRef.value.contains(e.target)) emit('close')
-}
-function onEsc(e) {
-  if (e.key === 'Escape') emit('close')
-}
-
-onMounted(() => {
-  document.addEventListener('mousedown', onDocMousedown)
-  document.addEventListener('keydown', onEsc)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('mousedown', onDocMousedown)
-  document.removeEventListener('keydown', onEsc)
-})
+// 点击菜单外 / ESC 关闭（menuRef 仅在 open 时存在，天然带守卫）
+useClickOutside(
+  () => [menuRef.value],
+  () => emit('close')
+)
+useEscapeClose(computed(() => props.open), () => emit('close'))
 
 watch(() => props.open, (val) => {
   if (val) computePosition()

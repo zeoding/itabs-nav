@@ -9,6 +9,7 @@
  */
 import { ref, computed, onMounted, watch } from 'vue'
 import { setSetting, migrateSetting } from '@/db'
+import { copyText } from '@/utils/clipboard'
 
 const STORAGE_KEY = 'splitText.inputValue'
 const DRAFT_KEY = 'splitDraft'
@@ -86,25 +87,7 @@ const outputCount = computed(() => {
 
 // === 操作 ===
 async function handleCopy() {
-  const text = outValue.value
-  let ok
-  try {
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text)
-      ok = true
-    } else {
-      const ta = document.createElement('textarea')
-      ta.value = text
-      ta.style.position = 'fixed'
-      ta.style.opacity = '0'
-      document.body.appendChild(ta)
-      ta.select()
-      ok = document.execCommand('copy')
-      document.body.removeChild(ta)
-    }
-  } catch {
-    ok = false
-  }
+  const ok = await copyText(outValue.value)
   notify(ok ? 'success' : 'error', ok ? '复制成功' : '复制失败,请手动复制')
 }
 

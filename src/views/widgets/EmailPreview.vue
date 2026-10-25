@@ -20,6 +20,7 @@
  */
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { getSetting, setSetting } from '@/db'
+import { copyText } from '@/utils/clipboard'
 import {
   RiMailLine,
   RiLoader4Line,
@@ -174,13 +175,12 @@ async function loadOpenMessage(msg) {
 
 async function copyAddress() {
   if (!account.value?.address) return
-  try {
-    await navigator.clipboard.writeText(account.value.address)
+  const ok = await copyText(account.value.address)
+  if (ok) {
     copied.value = true
     setTimeout(() => { copied.value = false }, 1500)
-  } catch {
-    /* 剪贴板权限被拒，忽略 */
   }
+  /* 失败静默：剪贴板权限被拒时与原行为一致 */
 }
 
 async function resetAccount() {
