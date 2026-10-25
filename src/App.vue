@@ -304,6 +304,11 @@ async function handleResize({ site, size }) {
  *
  * 工具元数据（name/icon/url 等）统一见 @/config/tools，新增工具只需改那一处
  */
+/** 来自「网址导航」：添加预设站点到指定面板（编辑器保持打开，支持连续添加） */
+async function handleAddDirectorySite(site) {
+  await add(site)
+}
+
 async function handleAddTool(tool) {
   const preset = TOOLS_BY_KIND[tool]
   if (!preset || !TOOL_KINDS.includes(tool)) return
@@ -465,9 +470,11 @@ async function handleRestored() {
       v-if="dialogMounted.editor"
       :open="editorOpen"
       :editing="editingSite"
+      :panel="currentPanel"
       @save="handleSave"
       @close="editorOpen = false"
       @add-tool="handleAddTool"
+      @add-directory="handleAddDirectorySite"
     />
     <SettingsPanel
       v-if="dialogMounted.settings"

@@ -10,14 +10,20 @@
  * - 支持全屏放大
  */
 import { ref, watch, computed, nextTick, defineAsyncComponent } from 'vue'
+import { storeToRefs } from 'pinia'
 import BaseDialog from '@/components/BaseDialog.vue'
+import BaseSelect from '@/components/BaseSelect.vue'
 import { $t } from '@/composables/useI18n'
 import { useMessage } from '@/composables/useMessage'
 import { useEscapeClose } from '@/composables/useEscapeClose'
 import { useClickOutside } from '@/composables/useClickOutside'
+import { useSitesStore } from '@/stores/sites'
+import { usePanelsStore } from '@/stores/panels'
 import { TOOL_KINDS, TOOLS, TOOLS_BY_KIND } from '@/config/tools'
 import { FAVICON_API } from '@/config/api'
-import { loadEngineSvg, THESVG_PREFIX, SITE_ICON_PRESETS } from '@/utils/thesvg'
+import { loadEngineSvg, loadEngineSvgCached, THESVG_PREFIX, SITE_ICON_PRESETS } from '@/utils/thesvg'
+import { openExternal } from '@/utils/openExternal'
+import { DIRECTORY_CATS, DIRECTORY_SITES } from '@/data/directory'
 /**
  * 小组件预览弹窗：懒加载
  * - 该弹窗内部静态引入了全部 widget 预览组件（SplitText/Email/Wallpaper/...），
@@ -31,6 +37,8 @@ const WidgetPreviewDialog = defineAsyncComponent(() =>
 import {
   RiGlobalLine,
   RiDashboardLine,
+  RiCompass3Line,
+  RiExternalLinkLine,
   RiAddLine,
   RiSearchLine,
 } from '@remixicon/vue'
@@ -38,19 +46,22 @@ import {
 const props = defineProps({
   open: { type: Boolean, default: false },
   editing: { type: Object, default: null },
+  /** 当前面板 key：「网址导航」的「添加到」默认值 */
+  panel: { type: String, default: 'home' },
 })
-const emit = defineEmits(['save', 'close', 'add-tool'])
+const emit = defineEmits(['save', 'close', 'add-tool', 'add-directory'])
 
 const form = ref({ name: '', url: '', icon: '' })
 const errorMsg = ref('')
-const activeTab = ref('site') // 'site' | 'widgets'
+const activeTab = ref('site') // 'site' | 'directory' | 'widgets'
 const message = useMessage()
 
-/** 右键编辑既有站点时隐藏"小组件"tab（仅新建经添加卡片进入才需要） */
+/** 右键编辑既有站点时隐藏"小组件/网址导航"tab（仅新建经添加卡片进入才需要） */
 const isEditing = computed(() => !!props.editing)
 const visibleTabs = computed(() => {
   const tabs = [{ key: 'site', icon: RiGlobalLine, label: $t('siteEditor.tabs.site') }]
   if (!isEditing.value) {
+    tabs.push({ key: 'directory', icon: RiCompass3Line, label: $t('siteDirectory.tab') })
     tabs.push({ key: 'widgets', icon: RiDashboardLine, label: $t('siteEditor.tabs.widgets') })
   }
   return tabs
@@ -81,6 +92,83 @@ function wDesc(w) {
 /* 当前 WIDGETS 仅含内置工具类,直接透传,无需搜索/分类过滤 */
 const filteredWidgets = computed(() => WIDGETS)
 
+/* ---------------- 网址导航 ---------------- */
+const sitesStore = useSitesStore()
+const { allSites } = storeToRefs(sitesStore)
+const panelsStore = usePanelsStore()
+
+const dirQuery = ref('')
+const dirCat = ref('hot') // 'hot' 为跨分类聚合，其余取值见 DIRECTORY_CATS
+const dirPanel = ref('home')
+
+/** 「添加到」面板下拉：主页 + 自定义面板 */
+const dirPanelOptions = computed(() => [
+  { value: 'home', label: $t('sidebar.home') },
+  ...panelsStore.customPanels.map((p) => ({ value: p.id, label: p.title })),
+])
+
+/** 目标面板已有的站点 URL 集合：命中即「已添加」，防重复添加 */
+const dirAddedUrls = computed(() => {
+  const set = new Set()
+  for (const s of allSites.value) {
+    if ((s.panel || 'home') === dirPanel.value) set.add(s.url)
+  }
+  return set
+})
+
+function isDirAdded(item) {
+  return dirAddedUrls.value.has(item.url)
+}
+
+/** 搜索（名称/描述/网址）+ 分类过滤；「热门」为跨分类聚合 */
+const dirFiltered = computed(() => {
+  const q = dirQuery.value.trim().toLowerCase()
+  return DIRECTORY_SITES.filter((s) => {
+    if (dirCat.value === 'hot' ? !s.hot : s.cat !== dirCat.value) return false
+    if (!q) return true
+    return (
+      s.name.toLowerCase().includes(q) ||
+      s.desc.toLowerCase().includes(q) ||
+      s.url.toLowerCase().includes(q)
+    )
+  })
+})
+
+/** 添加到目标面板：emit 给父组件写入（编辑器保持打开，支持连续添加） */
+function addDirectorySite(item) {
+  if (isDirAdded(item)) return
+  emit('add-directory', { name: item.name, url: item.url, icon: item.icon, panel: dirPanel.value })
+  const panelLabel = dirPanelOptions.value.find((o) => o.value === dirPanel.value)?.label || ''
+  message.success($t('siteDirectory.addSuccess', { name: item.name, panel: panelLabel }))
+}
+
+/** 导航卡片里的 thesvg 矢量图标（进入 tab 时批量加载，走全局 single-flight 缓存） */
+const dirSvgs = ref({})
+let dirSvgsLoaded = false
+async function loadDirSvgs() {
+  if (dirSvgsLoaded) return
+  dirSvgsLoaded = true
+  const slugs = [
+    ...new Set(
+      DIRECTORY_SITES
+        .filter((s) => s.icon.startsWith(THESVG_PREFIX))
+        .map((s) => s.icon.slice(THESVG_PREFIX.length))
+    ),
+  ]
+  const entries = await Promise.all(slugs.map(async (slug) => [slug, await loadEngineSvgCached(slug)]))
+  dirSvgs.value = Object.fromEntries(entries)
+}
+
+/** favicon 图标加载失败的站点（回退首字母，同 SiteCard 行为） */
+const dirImgFailed = ref({})
+function onDirImgError(item) {
+  dirImgFailed.value = { ...dirImgFailed.value, [item.slug]: true }
+}
+
+watch(activeTab, (t) => {
+  if (t === 'directory') loadDirSvgs()
+})
+
 /* ---------------- 小组件预览弹窗 ---------------- */
 /** 当前预览中的 widget（null = 关闭）*/
 const previewWidget = ref(null)
@@ -102,6 +190,10 @@ function reset() {
   activeTab.value = 'site'
   // 关闭时同时收起预览弹窗，避免叠加
   previewWidget.value = null
+  // 网址导航：重置筛选与目标面板（默认当前面板）
+  dirQuery.value = ''
+  dirCat.value = 'hot'
+  dirPanel.value = props.panel || 'home'
 }
 
 /* ---------------- thesvg 图标库悬浮选择 ---------------- */
@@ -369,8 +461,103 @@ function addWidget(widget) {
             </div>
           </div>
 
+          <!-- tab: 网址导航（搜索 + 分类过滤 + 点击添加到面板） -->
+          <div v-else-if="activeTab === 'directory'" class="panel">
+            <!-- 工具行：搜索 + 添加到面板 -->
+            <div class="dir-toolbar">
+              <div class="dir-search">
+                <RiSearchLine size="15" class="dir-search-ico" aria-hidden="true" />
+                <input
+                  v-model="dirQuery"
+                  type="text"
+                  :placeholder="$t('siteDirectory.searchPlaceholder')"
+                  :aria-label="$t('siteDirectory.searchPlaceholder')"
+                />
+              </div>
+              <div class="dir-panel-pick">
+                <span class="dir-panel-label">{{ $t('siteDirectory.addTo') }}</span>
+                <BaseSelect
+                  v-model="dirPanel"
+                  :options="dirPanelOptions"
+                  variant="box"
+                  layout="list"
+                  class="dir-panel-select"
+                  :aria-label="$t('siteDirectory.addTo')"
+                />
+              </div>
+            </div>
+
+            <!-- 分类过滤（热门为跨分类聚合） -->
+            <div class="dir-cats" role="tablist">
+              <button
+                type="button"
+                :class="['dir-cat', { active: dirCat === 'hot' }]"
+                @click="dirCat = 'hot'"
+              >{{ $t('siteDirectory.cats.hot') }}</button>
+              <button
+                v-for="c in DIRECTORY_CATS"
+                :key="c"
+                type="button"
+                :class="['dir-cat', { active: dirCat === c }]"
+                @click="dirCat = c"
+              >{{ $t(`siteDirectory.cats.${c}`) }}</button>
+            </div>
+
+            <!-- 卡片网格：图标 + 标题 + 描述，点击卡片/添加按钮写入面板 -->
+            <ul v-if="dirFiltered.length" class="dir-grid">
+              <li v-for="item in dirFiltered" :key="item.slug" class="dir-card">
+                <!-- 右上角外链：新窗口打开网站（不触发添加） -->
+                <button
+                  type="button"
+                  class="dir-open"
+                  v-tip="$t('siteDirectory.visit')"
+                  :aria-label="`${$t('siteDirectory.visit')}：${item.name}`"
+                  @click.stop="openExternal(item.url)"
+                >
+                  <RiExternalLinkLine size="13" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  class="dir-body"
+                  :title="item.url"
+                  @click="addDirectorySite(item)"
+                >
+                  <span class="dir-icon" aria-hidden="true">
+                    <span
+                      v-if="item.icon.startsWith(THESVG_PREFIX) && dirSvgs[item.icon.slice(THESVG_PREFIX.length)]"
+                      class="dir-svg"
+                      v-html="dirSvgs[item.icon.slice(THESVG_PREFIX.length)]"
+                    />
+                    <img
+                      v-else-if="item.icon.startsWith('http') && !dirImgFailed[item.slug]"
+                      :src="item.icon"
+                      alt=""
+                      loading="lazy"
+                      @error="onDirImgError(item)"
+                    />
+                    <span v-else class="dir-letter">{{ item.name.slice(0, 1) }}</span>
+                  </span>
+                  <span class="dir-info">
+                    <span class="dir-title">{{ item.name }}</span>
+                    <span class="dir-desc">{{ item.desc }}</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  class="dir-add"
+                  :class="{ added: isDirAdded(item) }"
+                  :disabled="isDirAdded(item)"
+                  @click="addDirectorySite(item)"
+                >
+                  {{ isDirAdded(item) ? $t('siteDirectory.added') : $t('common.add') }}
+                </button>
+              </li>
+            </ul>
+            <div v-else class="dir-empty">{{ $t('siteDirectory.empty') }}</div>
+          </div>
+
           <!-- tab: 小组件 -->
-          <div v-else class="panel">
+          <div v-else-if="activeTab === 'widgets'" class="panel">
             <!-- 卡片网格 -->
             <ul v-if="filteredWidgets.length" class="widget-grid">
               <li v-for="w in filteredWidgets" :key="w.key" class="widget-card">
@@ -795,5 +982,263 @@ function addWidget(widget) {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px color-mix(in srgb, @accent 0.35%, transparent);
   }
+}
+
+/* ---------------- 网址导航 ---------------- */
+.dir-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.dir-search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: @radius-pill;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid color-mix(in srgb, @accent 0.18%, transparent);
+  transition: border-color @tr, box-shadow @tr;
+
+  &:focus-within {
+    border-color: @accent;
+    box-shadow: 0 0 0 3px color-mix(in srgb, @accent 0.15%, transparent);
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: @text;
+    font-size: 13px;
+    padding: 9px 0;
+  }
+}
+
+.dir-search-ico {
+  color: @text-soft;
+  flex-shrink: 0;
+}
+
+.dir-panel-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dir-panel-label {
+  font-size: 12px;
+  color: @text-soft;
+  white-space: nowrap;
+}
+
+.dir-panel-select {
+  width: 150px;
+}
+
+/* 分类胶囊行：单行横向滚动 */
+.dir-cats {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  .thin-scrollbar(transparent, 0px);
+
+  &::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+}
+
+.dir-cat {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: @radius-pill;
+  font-size: 12px;
+  color: @text-soft;
+  background: rgba(31, 41, 55, 0.05);
+  transition: background @tr, color @tr;
+
+  &:hover {
+    background: color-mix(in srgb, @accent 0.1%, transparent);
+    color: @text;
+  }
+
+  &.active {
+    color: #fff;
+    background: @accent-gradient;
+    font-weight: 600;
+  }
+}
+
+.dir-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+}
+
+.dir-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: @radius-card;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid color-mix(in srgb, @accent 0.18%, transparent);
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: color-mix(in srgb, @accent 0.5%, transparent);
+    background: rgba(255, 255, 255, 0.65);
+    box-shadow: 0 4px 14px color-mix(in srgb, @accent 0.12%, transparent);
+  }
+}
+
+/* 右上角外链小按钮 */
+.dir-open {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: @text-soft;
+  background: transparent;
+  opacity: 0.55;
+  transition: background @tr, color @tr, opacity @tr;
+
+  &:hover {
+    background: color-mix(in srgb, @accent 0.12%, transparent);
+    color: @accent;
+    opacity: 1;
+  }
+}
+
+/* 卡片主体：点击即添加 */
+.dir-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+
+  &:focus-visible {
+    outline: 2px solid @accent;
+    outline-offset: 4px;
+    border-radius: 8px;
+  }
+}
+
+.dir-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 1px solid rgba(31, 41, 55, 0.06);
+  overflow: hidden;
+
+  img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+  }
+}
+
+.dir-svg {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  :deep(svg) {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.dir-letter {
+  font-size: 16px;
+  font-weight: 600;
+  color: @text-soft;
+}
+
+.dir-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dir-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: @text;
+  .ellipsis();
+}
+
+.dir-desc {
+  font-size: 12px;
+  color: @text-soft;
+  line-height: 1.4;
+  .ellipsis();
+}
+
+.dir-add {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 14px;
+  border-radius: @radius-pill;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  background: @accent-gradient;
+  transition: transform @tr, box-shadow @tr, background @tr;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px color-mix(in srgb, @accent 0.35%, transparent);
+  }
+
+  &.added {
+    background: rgba(31, 41, 55, 0.08);
+    color: @text-soft;
+    cursor: default;
+  }
+}
+
+.dir-empty {
+  text-align: center;
+  font-size: 13px;
+  color: @text-soft;
+  padding: 40px 8px;
 }
 </style>

@@ -212,6 +212,31 @@ export default {
     },
   },
 
+  // Site directory (preset site picker inside SiteEditor)
+  siteDirectory: {
+    tab: 'Directory',
+    searchPlaceholder: 'Search by name, description or URL…',
+    addTo: 'Add to',
+    added: 'Added',
+    addSuccess: 'Added "{name}" to "{panel}"',
+    visit: 'Open site',
+    empty: 'No matching sites',
+    cats: {
+      hot: 'Popular',
+      search: 'Search',
+      ai: 'AI',
+      news: 'News',
+      tech: 'Dev',
+      media: 'Media',
+      study: 'Learn',
+      work: 'Tools',
+      social: 'Social',
+      pic: 'Design',
+      shop: 'Shopping',
+      game: 'Games',
+    },
+  },
+
   // Site card
   siteCard: {
     removeTitle: 'Delete card',

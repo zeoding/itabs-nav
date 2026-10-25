@@ -220,6 +220,31 @@ export default {
     },
   },
 
+  // 网址导航（SiteEditor 内的预设站点选择器）
+  siteDirectory: {
+    tab: '网址导航',
+    searchPlaceholder: '搜索名称、描述或网址…',
+    addTo: '添加到',
+    added: '已添加',
+    addSuccess: '已添加「{name}」到「{panel}」',
+    visit: '打开网站',
+    empty: '没有匹配的网站',
+    cats: {
+      hot: '热门',
+      search: '搜索',
+      ai: 'AI',
+      news: '资讯',
+      tech: '科技',
+      media: '影音',
+      study: '学习',
+      work: '效率',
+      social: '社交',
+      pic: '图片',
+      shop: '购物',
+      game: '游戏',
+    },
+  },
+
   // 站点卡片
   siteCard: {
     removeTitle: '删除该卡片',
