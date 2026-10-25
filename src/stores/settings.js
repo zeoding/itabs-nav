@@ -148,10 +148,25 @@ export const useSettingsStore = defineStore('settings', () => {
     scheduleWallpaperTimer()
   }
 
-  async function set(key, value) {
+  /* 高频 set（如 color picker 拖动时每秒数十次 input）按 key 防抖落库：
+     内存态与 CSS 变量仍即时生效，避免每次 input 都开一次 IndexedDB 事务 */
+  const pendingSaves = new Map()
+  function persistDebounced(key, value) {
+    const prev = pendingSaves.get(key)
+    if (prev) clearTimeout(prev)
+    const timer = setTimeout(() => {
+      pendingSaves.delete(key)
+      db.setSetting(key, value).catch(() => {
+        /* 落库失败不影响内存态，下次修改会重试 */
+      })
+    }, 300)
+    pendingSaves.set(key, timer)
+  }
+
+  function set(key, value) {
     // 直接改属性，避免整体替换对象导致所有依赖 settings 的计算属性重算
     settings.value[key] = value
-    await db.setSetting(key, value)
+    persistDebounced(key, value)
     if (key === 'themeColor') applyThemeColor()
     if (key === 'themeMode') applyTheme()
     if (key === 'wallpaperMode' || key === 'wallpaperRefreshHours') {
@@ -175,7 +190,10 @@ export const useSettingsStore = defineStore('settings', () => {
     if (removeSet.has(cur)) {
       cur = next[0]?.key || ''
     }
-    settings.value = { ...settings.value, engines: next, currentEngineKey: cur }
+    // 就地改属性（同 set 的注释）：整体替换会让 backgroundStyle 等所有
+    // 依赖 settings 的 computed 全部重算
+    settings.value.engines = next
+    settings.value.currentEngineKey = cur
     await Promise.all([
       db.setSetting('engines', next),
       db.setSetting('currentEngineKey', cur),

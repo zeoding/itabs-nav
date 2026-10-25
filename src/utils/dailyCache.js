@@ -1,4 +1,4 @@
-import { getCache, setCache } from '@/db'
+import { getCache, setCache, purgeStaleCache } from '@/db'
 
 /**
  * 每日缓存工具（IndexedDB `cache` 表）
@@ -72,10 +72,26 @@ export async function getAny(key) {
   return readEntry(key)
 }
 
+/** 过期清理防重入：每天至多跑一次（模块级，页面刷新后重置也无妨） */
+let lastPurgeDate = null
+
+async function purgeExpired() {
+  const today = todayStr()
+  if (lastPurgeDate === today) return
+  lastPurgeDate = today
+  try {
+    await purgeStaleCache(today)
+  } catch {
+    /* 清理失败不影响本次写入 */
+  }
+}
+
 export async function setDaily(key, payload) {
   try {
     const wrap = { date: todayStr(), savedAt: Date.now(), payload }
     await setCache(key, wrap)
+    // 顺带清理过期行：cache 表只写不删会无限积累（weather 缓存按城市/语言成行）
+    purgeExpired()
     return wrap
   } catch {
     return null

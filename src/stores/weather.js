@@ -4,7 +4,7 @@ import { $t, getLanguage } from '@/composables/useI18n'
 import { WEATHER_API, NET_API, GEO_API } from '@/config/api'
 import http from '@/utils/http'
 import { getDaily, getAny, setDaily } from '@/utils/dailyCache'
-import { getSetting, setSetting, migrateSetting } from '@/db'
+import { setSetting, migrateSetting } from '@/db'
 
 /** 按天气描述文本映射 emoji（中英文关键字） */
 export function iconByText(text) {
@@ -24,9 +24,10 @@ const CITY_KEY = 'weatherCity'
 const LEGACY_CITY_KEY = 'itab.weather.city'
 export const DEFAULT_CITY = 'Shenzhen'
 
-/** 城市默认先回退常量，store 创建后异步从 IDB（及 localStorage 遗留）补齐 */
+/** 城市默认先回退常量，store 创建后异步从 IDB（及 localStorage 遗留）补齐。
+ *  返回 null 表示没有任何已存城市（新用户），供 load 判断是否走 IP 定位 */
 async function loadSavedCity() {
-  return migrateSetting(CITY_KEY, LEGACY_CITY_KEY, DEFAULT_CITY)
+  return migrateSetting(CITY_KEY, LEGACY_CITY_KEY, null)
 }
 
 async function saveCity(c) {
@@ -34,14 +35,6 @@ async function saveCity(c) {
     await setSetting(CITY_KEY, c)
   } catch {
     /* ignore */
-  }
-}
-
-async function hasSavedCity() {
-  try {
-    return (await getSetting(CITY_KEY, null)) != null
-  } catch {
-    return false
   }
 }
 
@@ -211,25 +204,34 @@ export const useWeatherStore = defineStore('weather', () => {
   const lastUpdated = ref(null)
   const fromCache = ref(false)
 
-  // 初始化城市（IDB / localStorage 遗留迁移），不阻塞 store 创建
-  loadSavedCity().then((c) => {
-    if (c) city.value = c
+  // 初始化城市（IDB / localStorage 遗留迁移），不阻塞 store 创建。
+  // promise 存下来供 load() await：避免同一 key 二次读取，并消除
+  // 「load 早于迁移完成 → 误判无历史城市 → 多发一次 IP 定位」的竞态
+  const savedCityReady = loadSavedCity()
+  savedCityReady.then((c) => {
+    city.value = c || DEFAULT_CITY
   })
 
   async function load(targetCity, force) {
     const args = normalizeWeatherArgs(targetCity, force)
     targetCity = args.city
     force = args.force
+    // 无参（读历史城市）请求进行中且非强制刷新：复用在途请求，
+    // 防止首屏与弹窗同时触发时并发双请求
+    if (loading.value && !force && !targetCity) return
     if (targetCity) {
       city.value = targetCity
       await saveCity(targetCity)
-    } else if (!(await hasSavedCity()) && !ipResolved) {
-      // 新用户无历史城市：IP 定位一次，失败则沿用 DEFAULT_CITY
-      ipResolved = true
-      const ipCity = await resolveCityByIP()
-      if (ipCity) {
-        city.value = ipCity
-        await saveCity(ipCity)
+    } else {
+      const saved = await savedCityReady
+      if (!saved && !ipResolved) {
+        // 新用户无历史城市：IP 定位一次，失败则沿用 DEFAULT_CITY
+        ipResolved = true
+        const ipCity = await resolveCityByIP()
+        if (ipCity) {
+          city.value = ipCity
+          await saveCity(ipCity)
+        }
       }
     }
     const lang = getLanguage() === 'en' ? 'en' : 'zh'

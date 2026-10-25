@@ -14,27 +14,14 @@ let seeded = false
 /** 补种壁纸库卡片只在本会话检查一次，避免每次 load 都重读 setting + 全表扫描 */
 let wallpaperChecked = false
 
-/**
- * 拖拽重排当前面板时写入的 order 基数。
- * 展示按面板过滤、只依赖面板内相对顺序，基数本身不影响显示；
- * 取 1000 只是让重排过的面板与其他未重排面板的小 order 值（1..n）拉开距离，便于排查。
- */
-const PANEL_MOVE_ORDER_BASE = 1000
-
 export const useSitesStore = defineStore('sites', () => {
   const sites = ref([]) // 当前面板的站点
   const allSites = ref([]) // 全部站点（用于计数等）
   const currentPanel = ref('home') // 当前面板 key
   const loading = ref(true)
 
+  /** 首页默认：百度 + 内置小组件（元数据统一取自 @/config/tools），仅空库时执行 */
   async function seedIfEmpty() {
-    if (seeded) return
-    const all = await db.getAllSites()
-    if (all.length > 0) {
-      seeded = true
-      return
-    }
-    // 首页默认：百度 + 内置小组件（元数据统一取自 @/config/tools）
     const seedSites = [
       { name: '百度', url: 'https://www.baidu.com', icon: 'thesvg:baidu' },
       ...SEED_TOOL_KINDS.map((kind) => {
@@ -45,38 +32,31 @@ export const useSitesStore = defineStore('sites', () => {
     for (const site of seedSites) {
       await db.addSite({ ...site, panel: 'home' })
     }
-    seeded = true
   }
 
   /**
-   * 老用户补种壁纸库卡片（seedIfEmpty 只对空库生效，已有数据的浏览器走这里）。
+   * 老用户补种壁纸库卡片（空库播种走不到这里，已有数据的浏览器走这里）。
    * - settings 标记 'tool-seed-wallpaper' 保证只执行一次（用户手动删除后不再打扰）
    * - 卡片追加到 home 面板末尾
+   * @returns 是否实际补种了卡片（调用方需据此重读全表）
    */
-  async function ensureWallpaperCard() {
-    if (wallpaperChecked) return
-    try {
-      const done = await db.getSetting('tool-seed-wallpaper', undefined)
-      if (done !== undefined) {
-        wallpaperChecked = true
-        return
-      }
-      const all = await db.getAllSites()
-      if (!all.some((s) => s.kind === 'wallpaper')) {
-        const wallpaper = TOOLS_BY_KIND.wallpaper
-        await db.addSite({
-          name: wallpaper.name,
-          url: toolActionUrl('wallpaper'),
-          icon: wallpaper.icon,
-          panel: 'home',
-          kind: 'wallpaper',
-        })
-      }
-      await db.setSetting('tool-seed-wallpaper', true)
-      wallpaperChecked = true
-    } catch {
-      /* 补种失败不阻塞站点加载（下次 load 再试） */
+  async function seedWallpaperCard(all) {
+    const done = await db.getSetting('tool-seed-wallpaper', undefined)
+    if (done !== undefined) return false
+    let added = false
+    if (!all.some((s) => s.kind === 'wallpaper')) {
+      const wallpaper = TOOLS_BY_KIND.wallpaper
+      await db.addSite({
+        name: wallpaper.name,
+        url: toolActionUrl('wallpaper'),
+        icon: wallpaper.icon,
+        panel: 'home',
+        kind: 'wallpaper',
+      })
+      added = true
     }
+    await db.setSetting('tool-seed-wallpaper', true)
+    return added
   }
 
   function applyFilter() {
@@ -89,9 +69,29 @@ export const useSitesStore = defineStore('sites', () => {
   async function load() {
     loading.value = true
     try {
-      await seedIfEmpty()
-      await ensureWallpaperCard()
-      allSites.value = await db.getAllSites()
+      // 启动期只做一次全表读：播种与壁纸卡补种基于这次结果在内存判断，
+      // 不再各自扫描全表（此前每次刷新串行 3 次全表读）
+      let all = await db.getAllSites()
+      if (!seeded) {
+        seeded = true
+        if (all.length === 0) {
+          await seedIfEmpty()
+          all = await db.getAllSites()
+        }
+      }
+      if (!wallpaperChecked) {
+        try {
+          const added = await seedWallpaperCard(all)
+          wallpaperChecked = true
+          if (added) {
+            // 补种了壁纸卡：重读一次（仅首次过渡发生）
+            all = await db.getAllSites()
+          }
+        } catch {
+          /* 补种失败不阻塞站点加载（下次 load 再试） */
+        }
+      }
+      allSites.value = all
       applyFilter()
     } finally {
       loading.value = false
@@ -145,20 +145,19 @@ export const useSitesStore = defineStore('sites', () => {
     dropOne(id)
   }
 
-  /** 拖拽排序：仅在当前面板内 */
+  /**
+   * 拖拽排序：仅在当前面板内
+   * - 只写当前面板的行：展示按面板过滤、只依赖面板内相对顺序，order 跨面板
+   *   允许重复；此前把其他面板的行也整体 bulkPut 重写，属于写放大
+   * - 内存与 DB 同用 index+1，两边保持一致
+   */
   async function move(fromIndex, toIndex) {
     if (fromIndex === toIndex) return
     const currentList = [...sites.value]
     const [moved] = currentList.splice(fromIndex, 1)
     currentList.splice(toIndex, 0, moved)
-    const otherList = allSites.value.filter(
-      (s) => (s.panel || 'home') !== currentPanel.value
-    )
-    const reordered = currentList.map((s, i) => ({
-      ...s,
-      order: PANEL_MOVE_ORDER_BASE + i,
-    }))
-    await db.reorderSites([...otherList, ...reordered])
+    const reordered = currentList.map((s, i) => ({ ...s, order: i + 1 }))
+    await db.reorderSites(reordered)
     // 排序只改 order 字段：把新 order 就地写回内存即可，无需重读整表
     const orderById = new Map(reordered.map((s) => [s.id, s.order]))
     allSites.value = allSites.value.map((s) =>

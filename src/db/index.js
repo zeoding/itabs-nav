@@ -1,4 +1,5 @@
 import Dexie from 'dexie'
+import { toRaw } from 'vue'
 import { $t } from '@/composables/useI18n'
 import { TOOL_KINDS } from '@/config/tools'
 
@@ -136,12 +137,19 @@ function fillDefaults(site) {
  * 不可被 IDB 的结构化克隆（否则会抛 DataCloneError）。`{ ...obj }`
  * 浅展开只能去掉 Proxy 外壳，但对**包含 Proxy 字段**的对象仍不安全。
  *
- * 这里走 JSON.stringify/parse 兜底（绝大多数站点数据是纯 JSON：name/url/icon/...），
- * 兼具深度去 Proxy + 字段裁剪的功能。如果将来引入不可 JSON 化的字段（Function/Symbol），
- * 再换成结构化克隆：`structuredClone(toRaw(obj))`。
+ * 优先 structuredClone(toRaw(obj))：现代浏览器均支持，比 JSON 往返快
+ * （拖拽排序会对每行调用一次），且保留 Date/undefined 等类型；
+ * 含不可克隆值（Function/Symbol）或环境过旧时回退 JSON 往返。
  */
 function toPlain(obj) {
   if (obj == null) return obj
+  if (typeof structuredClone === 'function') {
+    try {
+      return structuredClone(toRaw(obj))
+    } catch {
+      /* fallthrough：回退 JSON 往返 */
+    }
+  }
   return JSON.parse(JSON.stringify(obj))
 }
 
@@ -271,6 +279,20 @@ export async function getCache(key) {
 export async function setCache(key, wrap) {
   const db = getDB()
   return db.table('cache').put(toPlain({ key, ...wrap }))
+}
+
+/**
+ * 清理 cache 表中日期不是 today 的过期行。
+ * - 每日缓存过期后只读不删，会缓慢积累（weather 缓存 key 含城市/语言，
+ *   每换一个城市就多一行，跨年后全部变死数据），由 setDaily 顺带调用
+ * - cache 表很小，全表 filter 可接受；调用方自行防重入（每天至多一次）
+ */
+export async function purgeStaleCache(today) {
+  const db = getDB()
+  const table = db.table('cache')
+  const stale = await table.filter((row) => row && row.date !== today).primaryKeys()
+  if (stale.length) await table.bulkDelete(stale)
+  return stale.length
 }
 
 /**

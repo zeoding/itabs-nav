@@ -135,6 +135,9 @@ export const useHotStore = defineStore('hot', () => {
     source = args.source || currentSource.value
     force = args.force
     if (!SOURCES[source]) return
+    // 同源请求进行中且非强制刷新：复用在途请求（防首屏与弹窗并发双请求）；
+    // 切换到其他源不受影响，照常发起
+    if (loading.value && !force && source === currentSource.value) return
     currentSource.value = source
     if (!force) {
       const hit = await getDaily(hotCacheKey(source))
