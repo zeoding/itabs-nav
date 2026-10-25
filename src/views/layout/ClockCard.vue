@@ -7,6 +7,7 @@
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { $t } from '@/composables/useI18n'
+import { pad2 } from '@/utils/datetime'
 
 const emit = defineEmits(['open-worldtime'])
 
@@ -17,9 +18,9 @@ function tick() {
   now.value = new Date()
 }
 
-const hhStr = computed(() => String(now.value.getHours()).padStart(2, '0'))
-const mmStr = computed(() => String(now.value.getMinutes()).padStart(2, '0'))
-const ssStr = computed(() => String(now.value.getSeconds()).padStart(2, '0'))
+const hhStr = computed(() => pad2(now.value.getHours()))
+const mmStr = computed(() => pad2(now.value.getMinutes()))
+const ssStr = computed(() => pad2(now.value.getSeconds()))
 
 const greeting = computed(() => {
   const h = now.value.getHours()

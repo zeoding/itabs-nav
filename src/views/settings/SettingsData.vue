@@ -9,6 +9,7 @@ import { exportBackup, importBackup } from '@/db'
 import { SETTINGS_DEFAULTS } from '@/stores/settings'
 import { useConfirm } from '@/composables/useConfirm'
 import { useMessage } from '@/composables/useMessage'
+import { pad2 } from '@/utils/datetime'
 import { $t } from '@/composables/useI18n'
 import {
   RiDownloadLine,
@@ -36,8 +37,7 @@ async function handleBackup() {
       type: 'application/json',
     })
     const d = new Date()
-    const pad = (n) => String(n).padStart(2, '0')
-    const name = `itabs-nav-backup-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.json`
+    const name = `itabs-nav-backup-${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}-${pad2(d.getHours())}${pad2(d.getMinutes())}.json`
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
     a.download = name
@@ -189,14 +189,14 @@ async function resetAll() {
   border-radius: 12px;
   padding: 10px;
   font-size: 14px;
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.08);
+  color: @danger;
+  background: fade(@danger, 8%);
   transition: background @tr;
   border: none;
   cursor: pointer;
 
   &:hover {
-    background: rgba(239, 68, 68, 0.16);
+    background: fade(@danger, 16%);
   }
 }
 </style>

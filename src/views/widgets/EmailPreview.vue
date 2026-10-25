@@ -21,6 +21,7 @@
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { getSetting, setSetting } from '@/db'
 import { copyText } from '@/utils/clipboard'
+import { pad2 } from '@/utils/datetime'
 import {
   RiMailLine,
   RiLoader4Line,
@@ -225,12 +226,11 @@ function formatDate(msg) {
   if (!iso) return ''
   const d = new Date(iso)
   const now = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  const hh = `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  const hh = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`
   // 跨年用完整年份，否则用 MM-DD
   const md = d.getFullYear() === now.getFullYear()
-    ? `${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-    : `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    ? `${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+    : `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 
   // 计算"几天前"：以本地零点为分界
   const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
@@ -437,13 +437,13 @@ onBeforeUnmount(stopPolling)
   }
 
   &.active {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     color: #fff;
   }
 
   &.danger:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
+    background: fade(@danger, 12%);
+    color: @danger;
   }
 
   &:disabled {
@@ -453,19 +453,16 @@ onBeforeUnmount(stopPolling)
 }
 
 .spin {
-  animation: em-spin 1s linear infinite;
+  animation: spin360 1s linear infinite;
 }
 
-@keyframes em-spin {
-  to { transform: rotate(360deg); }
-}
 
 /* 错误条 */
 .error-bar {
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(239, 68, 68, 0.08);
-  color: #ef4444;
+  background: fade(@danger, 8%);
+  color: @danger;
   font-size: 12px;
   flex-shrink: 0;
 }

@@ -33,6 +33,7 @@ import {
 import { CanvasRenderer } from 'echarts/renderers'
 import * as XLSX from 'xlsx'
 import { getSetting, setSetting } from '@/db'
+import { formatDateTime as formatDate } from '@/utils/datetime'
 import { useMessage } from '@/composables/useMessage'
 import { useConfirm } from '@/composables/useConfirm'
 import { useFileDrop } from '@/composables/useFileDrop'
@@ -278,11 +279,6 @@ async function clearData() {
 }
 
 /** 原版 dayjs().format('YYYY-MM-DD HH:mm:ss') 的原生等价 */
-function formatDate(d = new Date()) {
-  const p = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
-}
-
 onMounted(async () => {
   resizeObserver = new ResizeObserver(() => {
     overviewChart?.resize()
@@ -467,7 +463,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   font-size: 13px;
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
   transition: transform @tr, box-shadow @tr;
 
   &:hover {
@@ -480,10 +476,10 @@ onBeforeUnmount(() => {
 
   /* 清空按钮：危险色 */
   &.danger {
-    background: #ef4444;
+    background: @danger;
 
     &:hover {
-      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+      box-shadow: 0 4px 14px fade(@danger, 40%);
     }
   }
 }
@@ -553,7 +549,7 @@ onBeforeUnmount(() => {
   }
 
   .table-title {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     color: #fff;
     font-size: 13px;
     font-weight: 600;

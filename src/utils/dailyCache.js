@@ -1,4 +1,5 @@
 import { getCache, setCache, purgeStaleCache } from '@/db'
+import { formatYMD as todayStr } from '@/utils/datetime'
 
 /**
  * 每日缓存工具（IndexedDB `cache` 表）
@@ -9,13 +10,6 @@ import { getCache, setCache, purgeStaleCache } from '@/db'
  * 存储结构：{ key, date: 'YYYY-MM-DD', savedAt: number, payload: any }
  * 老版本 localStorage（`key` 本身即 localStorage key）命中时自动迁入 IDB。
  */
-
-export function todayStr(d = new Date()) {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
 
 function safeParse(raw) {
   try {
