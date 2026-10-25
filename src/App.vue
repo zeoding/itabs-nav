@@ -7,57 +7,23 @@
  *   │          │      │ widgets  │
  *   │          │      │ grid    │
  *   └──────────┘      └──────────┘ */
-import { ref, computed, onMounted, onBeforeUnmount, watch, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import SearchBar from '@/views/search/SearchBar.vue'
 import WidgetsBar from '@/views/layout/WidgetsBar.vue'
 import SiteGrid from '@/views/sites/SiteGrid.vue'
 import Sidebar from '@/views/layout/Sidebar.vue'
-import DialogAsyncLoading from '@/components/feedback/DialogAsyncLoading.vue'
+import { lazyDialog } from '@/utils/lazyDialog'
 import { RiEyeLine, RiEyeOffLine, RiRefreshLine, RiSnowflakeLine, RiMoonLine, RiSunLine } from '@remixicon/vue'
-// 弹窗 / 编辑器：按需懒加载，点击时才下载对应 chunk
-// - delay: 200（毫秒）后才显示 loading，避免快速 chunk 闪现 loader
-// - loadingComponent: fixed 覆盖层占位（真弹窗也是 fixed 覆盖层，
-//   若用普通块级占位会参与文档流，把页面内容顶开造成布局抖动）
-const SettingsPanel = defineAsyncComponent({
-  loader: () => import('@/views/settings/SettingsPanel.vue'),
-  delay: 200,
-  loadingComponent: DialogAsyncLoading,
-})
-const WeatherDialog = defineAsyncComponent({
-  loader: () => import('@/views/dialogs/WeatherDialog.vue'),
-  delay: 200,
-  loadingComponent: DialogAsyncLoading,
-})
-const TodoDialog = defineAsyncComponent({
-  loader: () => import('@/views/dialogs/TodoDialog.vue'),
-  delay: 200,
-  loadingComponent: DialogAsyncLoading,
-})
-const CalendarDialog = defineAsyncComponent({
-  loader: () => import('@/views/dialogs/CalendarDialog.vue'),
-  delay: 200,
-  loadingComponent: DialogAsyncLoading,
-})
-const HotDialog = defineAsyncComponent({
-  loader: () => import('@/views/dialogs/HotDialog.vue'),
-  delay: 200,
-  loadingComponent: DialogAsyncLoading,
-})
-const WorldTimeDialog = defineAsyncComponent({
-  loader: () => import('@/views/dialogs/WorldTimeDialog.vue'),
-  delay: 200,
-  loadingComponent: DialogAsyncLoading,
-})
-const SiteEditor = defineAsyncComponent({
-  loader: () => import('@/views/sites/SiteEditor.vue'),
-  delay: 200,
-  loadingComponent: DialogAsyncLoading,
-})
-const WidgetPreviewDialog = defineAsyncComponent({
-  loader: () => import('@/views/dialogs/WidgetPreviewDialog.vue'),
-  delay: 200,
-  loadingComponent: DialogAsyncLoading,
-})
+// 弹窗 / 编辑器：按需懒加载，点击时才下载对应 chunk（统一走 lazyDialog 工厂：
+// delay 200ms 防闪 loader + DialogAsyncLoading fixed 覆盖层占位防布局抖动）
+const SettingsPanel = lazyDialog(() => import('@/views/settings/SettingsPanel.vue'))
+const WeatherDialog = lazyDialog(() => import('@/views/dialogs/WeatherDialog.vue'))
+const TodoDialog = lazyDialog(() => import('@/views/dialogs/TodoDialog.vue'))
+const CalendarDialog = lazyDialog(() => import('@/views/dialogs/CalendarDialog.vue'))
+const HotDialog = lazyDialog(() => import('@/views/dialogs/HotDialog.vue'))
+const WorldTimeDialog = lazyDialog(() => import('@/views/dialogs/WorldTimeDialog.vue'))
+const SiteEditor = lazyDialog(() => import('@/views/sites/SiteEditor.vue'))
+const WidgetPreviewDialog = lazyDialog(() => import('@/views/dialogs/WidgetPreviewDialog.vue'))
 // 全局 host：随 App 启动即用，同步加载（体积小）
 import ConfirmHost from '@/components/feedback/ConfirmHost.vue'
 import MessageHost from '@/components/feedback/MessageHost.vue'

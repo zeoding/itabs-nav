@@ -12,9 +12,10 @@
  *  - 不修改现有 Weather/Todo/Calendar/Hot/SplitText Dialog
  *  - 后续如需新增预览 widget,在 views/widgets/ 下新建组件并在此引入
  */
-import { computed, defineAsyncComponent, h } from 'vue'
+import { computed, h } from 'vue'
 import BaseDialog from '@/components/BaseDialog.vue'
 import { $t } from '@/composables/useI18n'
+import { lazyDialog } from '@/utils/lazyDialog'
 import { TOOLS_BY_KIND } from '@/config/tools'
 import {
   RiSubtractLine,
@@ -23,86 +24,24 @@ import {
 
 /* Widget 异步懒加载:
  * - 仅当用户真的点击对应 widget 时才按需 import
- * - loadingComponent: 加载过程中展示居中旋转图标,避免内容区空白闪烁
- * - delay: 100ms 内的请求不展示 loading,避免快速切换 widget 时 loading 闪一下
+ * - 内容区占位（居中旋转图标）六处共用一个组件，
+ *   经 lazyDialog 工厂统一注入（delay 100ms 内不展示，避免快速切换时闪烁）
  */
-const SplitTextPreview = defineAsyncComponent({
-  loader: () => import('@/views/widgets/SplitTextPreview.vue'),
-  delay: 100,
-  loadingComponent: {
-    render() {
-      return h('div', { class: 'cp-loading-with-icon' }, [
-        h(RiLoader4Line, { size: 28, class: 'spin', 'aria-hidden': 'true' }),
-        h('div', { class: 'cp-loading-text' }, $t('common.loading')),
-      ])
-    },
+const WidgetLoading = {
+  render() {
+    return h('div', { class: 'cp-loading-with-icon' }, [
+      h(RiLoader4Line, { size: 28, class: 'spin', 'aria-hidden': true }),
+      h('div', { class: 'cp-loading-text' }, $t('common.loading')),
+    ])
   },
-})
+}
 
-const EmailPreview = defineAsyncComponent({
-  loader: () => import('@/views/widgets/EmailPreview.vue'),
-  delay: 100,
-  loadingComponent: {
-    render() {
-      return h('div', { class: 'cp-loading-with-icon' }, [
-        h(RiLoader4Line, { size: 28, class: 'spin', 'aria-hidden': true }),
-        h('div', { class: 'cp-loading-text' }, $t('common.loading')),
-      ])
-    },
-  },
-})
-
-const WallpaperPreview = defineAsyncComponent({
-  loader: () => import('@/views/widgets/WallpaperPreview.vue'),
-  delay: 100,
-  loadingComponent: {
-    render() {
-      return h('div', { class: 'cp-loading-with-icon' }, [
-        h(RiLoader4Line, { size: 28, class: 'spin', 'aria-hidden': true }),
-        h('div', { class: 'cp-loading-text' }, $t('common.loading')),
-      ])
-    },
-  },
-})
-
-const WeekReportPreview = defineAsyncComponent({
-  loader: () => import('@/views/widgets/WeekReportPreview.vue'),
-  delay: 100,
-  loadingComponent: {
-    render() {
-      return h('div', { class: 'cp-loading-with-icon' }, [
-        h(RiLoader4Line, { size: 28, class: 'spin', 'aria-hidden': true }),
-        h('div', { class: 'cp-loading-text' }, $t('common.loading')),
-      ])
-    },
-  },
-})
-
-const EncodeDecodePreview = defineAsyncComponent({
-  loader: () => import('@/views/widgets/EncodeDecodePreview.vue'),
-  delay: 100,
-  loadingComponent: {
-    render() {
-      return h('div', { class: 'cp-loading-with-icon' }, [
-        h(RiLoader4Line, { size: 28, class: 'spin', 'aria-hidden': true }),
-        h('div', { class: 'cp-loading-text' }, $t('common.loading')),
-      ])
-    },
-  },
-})
-
-const QrCodePreview = defineAsyncComponent({
-  loader: () => import('@/views/widgets/QrCodePreview.vue'),
-  delay: 100,
-  loadingComponent: {
-    render() {
-      return h('div', { class: 'cp-loading-with-icon' }, [
-        h(RiLoader4Line, { size: 28, class: 'spin', 'aria-hidden': true }),
-        h('div', { class: 'cp-loading-text' }, $t('common.loading')),
-      ])
-    },
-  },
-})
+const SplitTextPreview = lazyDialog(() => import('@/views/widgets/SplitTextPreview.vue'), { delay: 100, loading: WidgetLoading })
+const EmailPreview = lazyDialog(() => import('@/views/widgets/EmailPreview.vue'), { delay: 100, loading: WidgetLoading })
+const WallpaperPreview = lazyDialog(() => import('@/views/widgets/WallpaperPreview.vue'), { delay: 100, loading: WidgetLoading })
+const WeekReportPreview = lazyDialog(() => import('@/views/widgets/WeekReportPreview.vue'), { delay: 100, loading: WidgetLoading })
+const EncodeDecodePreview = lazyDialog(() => import('@/views/widgets/EncodeDecodePreview.vue'), { delay: 100, loading: WidgetLoading })
+const QrCodePreview = lazyDialog(() => import('@/views/widgets/QrCodePreview.vue'), { delay: 100, loading: WidgetLoading })
 
 const props = defineProps({
   open: { type: Boolean, default: false },
