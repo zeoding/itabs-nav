@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useTodosStore } from '@/stores/todos'
 import BaseDialog from '@/components/BaseDialog.vue'
 import { useConfirm } from '@/composables/useConfirm'
+import { useProgressiveList } from '@/composables/useProgressiveList'
 import { useI18n, $t } from '@/composables/useI18n'
 import {
   RiCloseLine,
@@ -51,6 +52,11 @@ const currentList = computed(() => {
   if (tab.value === 'done') return todos.value.filter((t) => t.done)
   return todos.value.filter((t) => !t.done)
 })
+
+// 待办可能长期积累（含回收站）：分批渲染，初始 100 条、触底每批 60 条
+// （切片保序，idx 与源列表一致，拖拽重排不受影响，见 useProgressiveList 注释）
+const { visible: visibleTodos, sentinelRef: todoSentinel, exhausted: todosExhausted } =
+  useProgressiveList(() => currentList.value, { initial: 100, step: 60 })
 
 /** 切换某项选择 */
 function toggleSelect(id) {
@@ -285,17 +291,15 @@ function close() {
   emit('update:open', false)
 }
 
-// 弹窗打开时刷新
+// 弹窗打开时刷新；immediate 兼容「首次打开才挂载」门控下挂载即打开的场景
+// （启动期的列表数据由 WidgetsBar 的 loadTodos 负责，这里无需再兜底）
 watch(
   () => props.open,
   (v) => {
     if (v) load()
-  }
+  },
+  { immediate: true }
 )
-
-onMounted(() => {
-  if (todos.value.length === 0 || deleted.value.length > 0) load()
-})
 
 function relativeTime(ts) {
   if (!ts) return ''
@@ -449,7 +453,7 @@ function relativeTime(ts) {
           </div>
           <ul v-else class="todo-list">
             <li
-              v-for="(todo, idx) in currentList"
+              v-for="(todo, idx) in visibleTodos"
               :key="todo.id"
               :class="[
                 'todo-item',
@@ -509,6 +513,8 @@ function relativeTime(ts) {
                 <RiCloseLine size="14" aria-hidden="true" />
               </button>
             </li>
+            <!-- 渐进渲染触底哨兵（useProgressiveList，见该文件注释） -->
+            <li v-if="!todosExhausted" ref="todoSentinel" class="todo-more" aria-hidden="true"></li>
           </ul>
 
           <footer class="dialog-footer">
@@ -786,12 +792,12 @@ export default {
   }
 
   &.danger {
-    background: rgba(239, 68, 68, 0.12);
-    color: #ef4444;
+    background: fade(@danger, 12%);
+    color: @danger;
 
     &:hover:not(:disabled) {
-      background: rgba(239, 68, 68, 0.22);
-      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+      background: fade(@danger, 22%);
+      box-shadow: 0 2px 8px fade(@danger, 20%);
     }
   }
 }
@@ -837,7 +843,7 @@ export default {
   border-radius: 10px;
   font-size: 18px;
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -862,6 +868,11 @@ export default {
   grid-template-columns: repeat(2, 1fr);
   gap: 6px 10px;
   align-content: start;
+  /* 渐进渲染触底哨兵：跨双列占 1px，供 IntersectionObserver 探测 */
+  .todo-more {
+    grid-column: 1 / -1;
+    height: 1px;
+  }
   /* 自定义滚动条：细而优化 */
   scrollbar-color: color-mix(in srgb, @accent 0.4%, transparent) transparent;
   .thin-scrollbar(linear-gradient(180deg, color-mix(in srgb, @accent 0.35%, transparent), rgba(139, 92, 246, 0.35)), 6px);
@@ -980,7 +991,7 @@ export default {
   }
 
   &.checked {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     border: 1.5px solid transparent;
     border-style: solid;
     box-shadow: 0 2px 6px color-mix(in srgb, @accent 0.35%, transparent);
@@ -1099,8 +1110,8 @@ export default {
 }
 
 .del-btn:hover {
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
+  background: fade(@danger, 12%);
+  color: @danger;
 }
 
 .restore-btn {

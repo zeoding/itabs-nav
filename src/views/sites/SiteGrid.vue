@@ -12,6 +12,7 @@ import SiteCard from '@/views/sites/SiteCard.vue'
 import SiteContextMenu from '@/views/sites/SiteContextMenu.vue'
 import AddCardMenu from '@/views/sites/AddCardMenu.vue'
 import { useConfirm } from '@/composables/useConfirm'
+import { useProgressiveList } from '@/composables/useProgressiveList'
 import { $t } from '@/composables/useI18n'
 import { RiAddLine, RiCheckLine, RiFolderLine, RiAddLargeLine } from '@remixicon/vue'
 
@@ -21,6 +22,11 @@ const props = defineProps({
   gridColumns: { type: [String, Number], default: 'auto' },
 })
 const emit = defineEmits(['move', 'edit', 'add', 'remove', 'resize', 'tool-click'])
+
+// 站点很多时分批渲染：初始 120 张，滚动近底部每批追加 60 张
+// （索引与源列表一致，拖拽重排不受影响，见 useProgressiveList 注释）
+const { visible: visibleSites, sentinelRef: gridSentinel, exhausted: sitesExhausted } =
+  useProgressiveList(() => props.sites, { initial: 120, step: 60 })
 
 const dragIndex = ref(null)
 const dropIndex = ref(null)
@@ -244,7 +250,7 @@ function onCardRemove(site) {
     <template v-else-if="sites.length">
       <div ref="gridRef" class="panel-grid" :style="gridStyle()">
         <SiteCard
-          v-for="(site, index) in sites"
+          v-for="(site, index) in visibleSites"
           :key="site.id"
           :site="site"
           :style="{
@@ -276,6 +282,8 @@ function onCardRemove(site) {
           <span class="add-label">{{ editMode ? $t('editMode.done') : $t('common.add') }}</span>
         </button>
       </div>
+      <!-- 渐进渲染触底哨兵（useProgressiveList，见该文件注释） -->
+      <div v-if="!sitesExhausted" ref="gridSentinel" class="grid-sentinel" aria-hidden="true"></div>
     </template>
 
     <div v-else class="empty glass">
@@ -315,6 +323,11 @@ function onCardRemove(site) {
   width: 100%;
   max-width: 1080px;
   margin-top: 28px;
+}
+
+/* 渐进渲染触底哨兵：仅占位 1px，供 IntersectionObserver 探测 */
+.grid-sentinel {
+  height: 1px;
 }
 
 .panel-grid {
@@ -427,7 +440,7 @@ function onCardRemove(site) {
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
   box-shadow: 0 8px 24px color-mix(in srgb, @accent 0.35%, transparent);
   margin-bottom: 16px;
 }
@@ -453,7 +466,7 @@ function onCardRemove(site) {
   padding: 10px 24px;
   font-size: 14px;
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
   transition: transform @tr, box-shadow @tr;
   display: inline-flex;
   align-items: center;
