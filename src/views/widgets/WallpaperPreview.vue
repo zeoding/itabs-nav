@@ -568,7 +568,7 @@ onMounted(async () => {
   padding: 7px 14px;
   font-size: 13px;
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
 }
 
 .icon-btn {
@@ -623,7 +623,7 @@ onMounted(async () => {
 
   &.error p {
     margin: 0;
-    color: #ef4444;
+    color: @danger;
   }
 }
 
@@ -788,14 +788,11 @@ onMounted(async () => {
   color: @text-soft;
 
   .spin {
-    animation: wp-img-spin 1s linear infinite;
+    animation: spin360 1s linear infinite;
     color: @accent;
   }
 }
 
-@keyframes wp-img-spin {
-  to { transform: rotate(360deg); }
-}
 
 /* 缩放工具条（右下角浮层） */
 .zoom-bar {
@@ -876,7 +873,7 @@ onMounted(async () => {
 
   &.primary {
     color: #fff;
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
 
     &:hover {
       transform: translateY(-1px);

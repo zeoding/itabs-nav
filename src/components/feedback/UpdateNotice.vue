@@ -88,7 +88,7 @@ const hasNotes = computed(() => Boolean(updateState.available?.notes))
   justify-content: center;
   border-radius: @radius-pill;
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
 }
 
 .update-body {
@@ -157,7 +157,7 @@ const hasNotes = computed(() => Boolean(updateState.available?.notes))
   border-radius: @radius-pill;
   font-size: 12px;
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 

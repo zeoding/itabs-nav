@@ -213,6 +213,17 @@ body {
   white-space: nowrap;
 }
 
+/* 旋转动画（全局）：加载 spinner / 刷新按钮共用。
+   此前 6 个组件各自定义同名语义的 @keyframes（spin/wp-spin/widget-spin/
+   about-spin/em-spin/wp-img-spin），收敛到这里后 scoped 样式直接引用
+   animation: spin360 ... 即可（本块未在组件 scoped 内定义同名 keyframes，
+   编译器不会改写该名字，运行时解析到全局）。 */
+@keyframes spin360 {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ============================================================
    弹窗过渡：各弹窗在 Teleport 内套 <Transition name="modal-pop|menu-pop"> 使用
    - modal-pop：大弹窗（遮罩淡入 + 内容上浮放大）

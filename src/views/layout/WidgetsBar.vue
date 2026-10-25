@@ -369,12 +369,9 @@ onMounted(() => {
 }
 
 .spinning {
-  animation: widget-spin 0.9s linear infinite;
+  animation: spin360 0.9s linear infinite;
 }
 
-@keyframes widget-spin {
-  to { transform: rotate(360deg); }
-}
 
 @media (prefers-reduced-motion: reduce) {
   .spinning { animation: none; }

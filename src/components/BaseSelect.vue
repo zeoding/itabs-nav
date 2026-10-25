@@ -290,7 +290,7 @@ useClickOutside(
   }
 
   &.active {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     color: #fff;
     font-weight: 600;
   }

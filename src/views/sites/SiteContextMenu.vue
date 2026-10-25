@@ -218,10 +218,10 @@ function sizeShape(s) {
   }
 
   &.danger {
-    color: #ef4444;
+    color: @danger;
 
     &:hover {
-      background: rgba(239, 68, 68, 0.1);
+      background: fade(@danger, 10%);
       color: #dc2626;
     }
   }

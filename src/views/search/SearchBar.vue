@@ -276,7 +276,7 @@ function search() {
   font-size: 14px;
   font-weight: 500;
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
   transition: transform @tr, box-shadow @tr;
   flex-shrink: 0;
 
@@ -343,7 +343,7 @@ function search() {
     font-weight: 500;
 
     .dd-icon {
-      background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+      background: @accent-gradient;
 
       img,
       .engine-svg :deep(svg) {
@@ -412,7 +412,7 @@ function search() {
   width: 16px;
   height: 16px;
   border-radius: @radius-circle;
-  background: #ef4444;
+  background: @danger;
   color: #fff;
   border: none;
   padding: 0;

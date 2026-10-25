@@ -134,7 +134,7 @@ function minimize() {
   padding: 50px 12px;
 
   .spin {
-    animation: wp-spin 1s linear infinite;
+    animation: spin360 1s linear infinite;
     color: @accent;
   }
 }
@@ -144,9 +144,6 @@ function minimize() {
   color: @text-soft;
 }
 
-@keyframes wp-spin {
-  to { transform: rotate(360deg); }
-}
 
 .header-title {
   display: flex;
@@ -169,7 +166,7 @@ function minimize() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
   flex-shrink: 0;
 }
 

@@ -31,7 +31,7 @@
   border-radius: @radius-circle;
   border: 2.5px solid color-mix(in srgb, @accent 18%, transparent);
   border-top-color: @accent;
-  animation: spin 0.8s linear infinite;
+  animation: spin360 0.8s linear infinite;
 }
 
 .hint {
@@ -39,7 +39,4 @@
   color: @text-soft;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
 </style>

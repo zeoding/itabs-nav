@@ -480,7 +480,7 @@ function submit() {
 }
 
 .error {
-  color: #ef4444;
+  color: @danger;
   font-size: 13px;
   margin: 8px 0 0;
 }
@@ -509,8 +509,8 @@ function submit() {
   }
 
   .remove {
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.1);
+    color: @danger;
+    background: fade(@danger, 10%);
     padding: 3px 9px;
     border-radius: @radius-pill;
   }
@@ -544,7 +544,7 @@ function submit() {
 
   &.primary {
     color: #fff;
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
 
     &:hover:not(:disabled) {
       transform: translateY(-1px);

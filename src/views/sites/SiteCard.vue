@@ -326,10 +326,10 @@ function onRemoveClick(e) {
   transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 
   &:hover {
-    background: rgba(239, 68, 68, 0.95);
-    border-color: rgba(239, 68, 68, 0.95);
+    background: fade(@danger, 95%);
+    border-color: fade(@danger, 95%);
     color: #fff;
-    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
+    box-shadow: 0 4px 10px fade(@danger, 35%);
     transform: scale(1.08);
   }
 

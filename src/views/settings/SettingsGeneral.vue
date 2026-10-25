@@ -192,7 +192,7 @@ function onCustomColor(e) {
   }
 
   &.active {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     color: #fff;
     box-shadow: 0 2px 8px @accent-soft;
   }

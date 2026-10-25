@@ -117,9 +117,9 @@ function onClick(id) {
 }
 
 .message-error {
-  border-color: rgba(239, 68, 68, 0.45);
+  border-color: fade(@danger, 45%);
 
-  .message-icon { color: #ef4444; }
+  .message-icon { color: @danger; }
 }
 
 .message-warning {

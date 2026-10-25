@@ -688,16 +688,16 @@ const outputLen = computed(() => output.value.length)
   &:read-only { background: rgba(127, 127, 127, 0.05); }
   &:disabled { opacity: 0.5; }
 
-  &.has-error { border-color: #ef4444; }
+  &.has-error { border-color: @danger; }
 }
 
 /* 错误 */
 .ed-error {
   font-size: 12px;
-  color: #ef4444;
+  color: @danger;
   padding: 6px 10px;
   border-radius: 8px;
-  background: rgba(239, 68, 68, 0.08);
+  background: fade(@danger, 8%);
 }
 
 /* 动作条 */

@@ -538,7 +538,7 @@ function addWidget(widget) {
   flex-shrink: 0;
 
   &.open {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     color: #fff;
   }
 }
@@ -641,7 +641,7 @@ function addWidget(widget) {
 }
 
 .error {
-  color: #ef4444;
+  color: @danger;
   font-size: 13px;
   margin: 8px 0 12px;
 }
@@ -670,7 +670,7 @@ function addWidget(widget) {
 
   &.primary {
     color: #fff;
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
 
     &:hover {
       transform: translateY(-1px);
@@ -742,7 +742,7 @@ function addWidget(widget) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
 }
 
 .widget-emoji {
@@ -787,7 +787,7 @@ function addWidget(widget) {
   font-size: 12px;
   font-weight: 500;
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
   transition: transform @tr, box-shadow @tr;
   flex-shrink: 0;
 

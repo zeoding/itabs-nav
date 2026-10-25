@@ -411,7 +411,7 @@ watch(inputValue, (v) => {
   }
 
   &.active {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     color: #fff;
   }
 }
@@ -498,7 +498,7 @@ watch(inputValue, (v) => {
 
   &.primary {
     .act-variant(
-      linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff)),
+      @accent-gradient,
       color-mix(in srgb, @accent 0.35%, transparent)
     );
   }
@@ -508,7 +508,7 @@ watch(inputValue, (v) => {
   }
 
   &.danger {
-    .act-variant(#ef4444, rgba(239, 68, 68, 0.35));
+    .act-variant(@danger, fade(@danger, 35%));
   }
 }
 

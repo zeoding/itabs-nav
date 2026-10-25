@@ -87,7 +87,7 @@ watch(visible, (v) => {
   width: 48px;
   height: 48px;
   border-radius: @radius-circle;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
   color: #fff;
   display: flex;
   align-items: center;
@@ -97,7 +97,7 @@ watch(visible, (v) => {
   margin-bottom: 4px;
 
   &.danger {
-    background: linear-gradient(135deg, #ef4444, #f59e0b);
+    background: linear-gradient(135deg, @danger, #f59e0b);
   }
 }
 
@@ -145,17 +145,17 @@ watch(visible, (v) => {
 
 .btn-ok {
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
 
   &:hover {
     transform: translateY(-1px);
   }
 
   &.danger {
-    background: linear-gradient(135deg, #ef4444, #f97316);
+    background: linear-gradient(135deg, @danger, #f97316);
 
     &:hover {
-      box-shadow: 0 6px 18px rgba(239, 68, 68, 0.35);
+      box-shadow: 0 6px 18px fade(@danger, 35%);
     }
   }
 }

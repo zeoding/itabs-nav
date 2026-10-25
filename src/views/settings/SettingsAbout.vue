@@ -71,7 +71,7 @@ async function onCheckUpdate() {
   font-size: 30px;
   border-radius: 16px;
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
 
   :deep(svg) {
     color: #fff;
@@ -119,15 +119,10 @@ async function onCheckUpdate() {
   }
 
   .spinning {
-    animation: about-spin 0.9s linear infinite;
+    animation: spin360 0.9s linear infinite;
   }
 }
 
-@keyframes about-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 
 .about-desc {
   margin-top: 14px;

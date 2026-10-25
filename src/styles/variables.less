@@ -12,6 +12,22 @@
 @accent-soft: var(--color-accent-soft);
 @tr: var(--transition);
 
+// ---- 语义色 ----
+/**
+ * 危险色（删除/错误按钮、告警文案）。
+ * 此前 #ef4444 / rgba(239,68,68,α) 硬编码散落 19 个文件 50+ 处；
+ * 透明度变体统一用 fade(@danger, N%) 表达。
+ */
+@danger: #ef4444;
+
+/**
+ * 主题强调渐变（按钮/高亮/选中态通用底色）。
+ * 此前整条 gradient 字面量在 21 个文件重复 39 处；收敛到这里。
+ * 需要与 background-clip 等组合时可直接作为值片段使用：
+ *   background: @accent-gradient border-box, ...;
+ */
+@accent-gradient: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+
 // ---- 圆角 ----
 @radius-dialog: 22px;
 @radius-card: 14px;

@@ -709,7 +709,7 @@ onMounted(() => {
 
   &:focus { border-color: @accent; }
   &:read-only { background: rgba(127, 127, 127, 0.05); }
-  &.has-error { border-color: #ef4444; }
+  &.has-error { border-color: @danger; }
 }
 
 /* 参数 */
@@ -894,7 +894,7 @@ onMounted(() => {
   line-height: 1.6;
 }
 
-.qr-err { color: #ef4444; }
+.qr-err { color: @danger; }
 
 /* 解码 */
 .qr-file { display: none; }

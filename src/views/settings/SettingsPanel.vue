@@ -184,7 +184,7 @@ function forwardUpdate(key, value) {
   left: 8px;
   right: 8px;
   border-radius: 8px;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
   transition: top 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
               height 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
               opacity 0.2s ease;

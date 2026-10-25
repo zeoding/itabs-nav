@@ -431,7 +431,7 @@ const iconPresets = [
   animation: expand-in 0.28s ease;
 
   &:hover {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     color: #fff;
     width: 32px;
   }
@@ -467,7 +467,7 @@ const iconPresets = [
     position: absolute;
     inset: 0;
     border-radius: 12px;
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     opacity: 0;
     transform: scale(0.5);
     transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1.2);
@@ -554,7 +554,7 @@ const iconPresets = [
   }
 
   &.active {
-    background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+    background: @accent-gradient;
     color: #fff;
   }
 }
@@ -599,7 +599,7 @@ const iconPresets = [
 
 .btn-ok {
   color: #fff;
-  background: linear-gradient(135deg, @accent, color-mix(in srgb, @accent 60%, #fff));
+  background: @accent-gradient;
 }
 
 /* 右键菜单 */
@@ -633,8 +633,8 @@ const iconPresets = [
   }
 
   &.danger:hover {
-    background: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
+    background: fade(@danger, 10%);
+    color: @danger;
   }
 }
 
