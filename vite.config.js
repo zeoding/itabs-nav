@@ -109,33 +109,45 @@ export default defineConfig({
     rolldownOptions: {
       output: {
         // 控制分包粒度（Vite 8 / Rolldown：manualChunks 已废弃，用 codeSplitting.groups 代替）：
-        // - vendor-ui：lunar-javascript / remixicon 图标库（tree-shake 后约 400KB）
-        // - thesvg-icons：运行时按需 import，首屏不下载，独立长效缓存
+        // - vendor-core：vue / pinia / dexie / axios 等首屏框架依赖，独立长效缓存
+        // - vendor-ui：remixicon 图标库（tree-shake 后）
+        // - lunar-libs：lunar-javascript 农历库，仅懒加载方引用，首屏不下载
         // - vendor：其余 node_modules 兜底
         // - dialogs：各弹窗懒加载 chunk；- app-runtime：composables / stores / utils
         // 注意（实测结论）：
-        // 1. Rolldown 会把 group 命中模块的依赖递归吸入同一 chunk，无视其他 group 的 test，
-        //    所以 vue 等核心库实际跟随引用方走，vendor-core 经常不单独成块——属正常现象。
-        // 2. 不要把 vendor-core 的 priority 调到 vendor-ui/dialogs 之上，
+        // 1. Rolldown 会把 group 命中模块的依赖递归吸入同一 chunk；group 命中的模块
+        //    按 priority 取最高者，未命中 group 的模块跟随引用方所在 chunk。
+        // 2. 不要把 vendor-core 的 priority 调到 vendor-ui 之上，
         //    否则 @remixicon/vue 的 2.7MB 单文件 barrel 会失去 tree-shaking，
         //    vendor-ui 从 ~400KB 膨胀到 ~3MB 并触发超限警告（已实测复现两遍）。
-        // 3. priority 越大越先匹配：thesvg-icons(30) > vendor-ui/dialogs(20) > vendor-core(15) > vendor(10)。
+        // 3. dialogs 必须「纯懒加载」：App.vue 的弹窗全部 defineAsyncComponent，
+        //    SearchBar 的 EngineEditor 也是懒加载 + 首次打开才挂载；
+        //    任何首屏组件静态引入 dialogs 组内文件（含 ConfirmHost），都会把该 chunk
+        //    连同其吸入的 lunar-libs 等依赖一起变成首屏 preload。
+        // 4. priority 越大越先匹配：vendor-ui(28) > crypto/qr/lunar-libs(25) >
+        //    vendor-core/app-runtime(22/21) > dialogs/widget-libs(20) > vendor(10)；
+        //    共享代码必须落在比引用方更高 priority 的组里，否则被吸入懒加载块形成反向静态依赖。
         codeSplitting: {
           groups: [
             {
+              // 首屏框架依赖独立成块：priority 高于 dialogs，从 dialogs 的吸入范围里
+              // 摘出来，让 dialogs 成为纯弹窗代码块——弹窗改动不再连带重下框架代码。
+              // priority 必须低于 vendor-ui（见上方注意事项 2）。
               name: 'vendor-core',
-              test: /node_modules[\\/](vue|@vue|dexie)/,
-              priority: 15,
-            },
-            {
-              name: 'thesvg-icons',
-              test: /node_modules[\\/]@thesvg[\\/]icons/,
-              priority: 30,
+              test: /node_modules[\\/](vue|@vue|pinia|dexie|axios)/,
+              priority: 22,
             },
             {
               name: 'vendor-ui',
-              test: /node_modules[\\/](lunar-javascript|@remixicon[\\/]vue)/,
-              priority: 20,
+              test: /node_modules[\\/]@remixicon[\\/]vue/,
+              priority: 28,
+            },
+            {
+              // 农历库 ~300KB：WidgetsBar 首帧后动态 import、CalendarDialog 经 utils/lunar 引用，
+              // 独立成块保证首屏不下载（若与 remixicon 同组会被首屏静态依赖连带变 eager）
+              name: 'lunar-libs',
+              test: /node_modules[\\/]lunar-javascript/,
+              priority: 25,
             },
             {
               // 周报统计 widget 专用重依赖（echarts/xlsx）：
@@ -161,23 +173,27 @@ export default defineConfig({
               priority: 25,
             },
             {
-              name: 'vendor',
-              test: /node_modules/,
-              priority: 10,
-            },
-            {
               // 弹窗/编辑器类懒加载 chunk 的统一归集。
               // 注意：WidgetPreviewDialog 必须列在这里 —— 它内部静态引入了全部
               // widget 预览组件，是 dialogs 块体积的主要来源；漏掉它会落进 vendor
               // 兜底块，与首屏依赖混包并失去独立缓存。
+              // ConfirmHost 不在本组：App.vue 静态同步引入，会让 dialogs 失去纯懒加载。
               name: 'dialogs',
-              test: /(TodoDialog|CalendarDialog|WeatherDialog|HotDialog|WorldTimeDialog|WidgetPreviewDialog|EngineEditor|SettingsPanel|SiteEditor|ConfirmHost)/,
+              test: /(TodoDialog|CalendarDialog|WeatherDialog|HotDialog|WorldTimeDialog|WidgetPreviewDialog|EngineEditor|SettingsPanel|SiteEditor)/,
               priority: 20,
             },
             {
+              // 基础设施静态块：composables / stores / utils / config / components / data / directives。
+              // priority 高于 dialogs：弹窗引用到的共享模块必须留在静态块，
+              // 否则会被 dialogs 吸入，产生 首屏/app-runtime → dialogs 的静态反向依赖，
+              // 把 dialogs（连带 lunar-libs）拖回首屏 preload。
+              // 必须锚定 src/：否则会命中 node_modules 里的同名目录
+              // （实测 echarts/lib/utils 被吸入，app-runtime 膨胀 200KB+）。
+              // utils/lunar.js 例外（负向断言排除）：它静态引用 lunar-javascript，
+              // 必须跟随懒加载方（CalendarDialog / WidgetsBar 动态 import）。
               name: 'app-runtime',
-              test: /[\\/](composables|stores|utils)[\\/]/,
-              priority: 10,
+              test: /[\\/]src[\\/](composables|stores|utils|config|components|data|directives)[\\/](?!lunar)/,
+              priority: 21,
             },
           ],
         },

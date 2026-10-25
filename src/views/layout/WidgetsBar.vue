@@ -6,38 +6,17 @@
  *   3. 待办（点击打开待办弹窗，显示未完成数量）
  *   4. 日历（点击打开日历弹窗，显示今天日期/ 农历 / 星期几）
  *   5. 热榜（点击打开热榜弹窗 */
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useTodosStore } from '@/stores/todos'
 import { useWeatherStore } from '@/stores/weather'
 import { useHotStore } from '@/stores/hot'
 import { useI18n, $t } from '@/composables/useI18n'
-import { Solar } from 'lunar-javascript'
 import { RiRefreshLine } from '@remixicon/vue'
+import ClockCard from '@/views/layout/ClockCard.vue'
 
 const emit = defineEmits(['open-weather', 'open-todo', 'open-calendar', 'open-hot', 'open-worldtime'])
 const { lang } = useI18n()
-
-const now = ref(new Date())
-let timer = null
-
-function tick() {
-  now.value = new Date()
-}
-
-const hhStr = computed(() => String(now.value.getHours()).padStart(2, '0'))
-const mmStr = computed(() => String(now.value.getMinutes()).padStart(2, '0'))
-const ssStr = computed(() => String(now.value.getSeconds()).padStart(2, '0'))
-
-const greeting = () => {
-  const h = now.value.getHours()
-  if (h < 6) return $t('clock.greeting.night')
-  if (h < 11) return $t('clock.greeting.morning')
-  if (h < 14) return $t('clock.greeting.noon')
-  if (h < 18) return $t('clock.greeting.afternoon')
-  if (h < 22) return $t('clock.greeting.evening')
-  return $t('clock.greeting.night')
-}
 
 /* 待办统计 */
 const todosStore = useTodosStore()
@@ -47,27 +26,47 @@ onMounted(() => {
   loadTodos()
 })
 
-/* 今日信息 */
-const todayInfo = ref(getTodayInfo())
-function getTodayInfo() {
+/* 今日信息：公历部分同步计算；农历部分等 lunar-javascript 异步加载后填充。
+   该库 ~300KB，静态引入会把整库拖进首屏 chunk，故仅在首帧后动态加载 */
+function todayBase() {
   const d = new Date()
-  const solar = Solar.fromDate(d)
-  const lunar = solar.getLunar()
   return {
     day: d.getDate(),
     weekDay: $t('clock.weekDays')[d.getDay()],
-    lunarMonth: lunar.getMonthInChinese(),
-    lunarDay: lunar.getDayInChinese(),
     weekDayCN: ['日', '一', '二', '三', '四', '五', '六'][d.getDay()],
   }
 }
+const todayInfo = ref({ ...todayBase(), lunarMonth: '', lunarDay: '' })
+
+async function loadLunar() {
+  try {
+    const { Solar } = await import('lunar-javascript')
+    const lunar = Solar.fromDate(new Date()).getLunar()
+    todayInfo.value.lunarMonth = lunar.getMonthInChinese()
+    todayInfo.value.lunarDay = lunar.getDayInChinese()
+  } catch {
+    /* 农历库加载失败只隐藏农历文案，不影响卡片其余信息 */
+  }
+}
+loadLunar()
 
 /** 农历星期显示：英文用 weekDay，中文用 weekDayCN（字典 lunarFormat 只差这一个参数） */
 const lunarWeek = computed(() => (lang.value === 'en' ? todayInfo.value.weekDay : todayInfo.value.weekDayCN))
 
-/** 语言切换后重新计算今日信息（星期/标题等依赖语言） */
+/** 日历卡副标题：农历未加载完成时先只显示星期 */
+const todaySub = computed(() =>
+  todayInfo.value.lunarDay
+    ? $t('clock.lunarFormat', { month: todayInfo.value.lunarMonth, day: todayInfo.value.lunarDay, week: lunarWeek.value })
+    : lunarWeek.value
+)
+
+/** 语言切换后重算星期；农历字段与语言无关，保持不变 */
 watch(lang, () => {
-  todayInfo.value = getTodayInfo()
+  todayInfo.value = {
+    ...todayBase(),
+    lunarMonth: todayInfo.value.lunarMonth,
+    lunarDay: todayInfo.value.lunarDay,
+  }
 })
 
 /* 天气（每日缓存：当天内读缓存，手动刷新才强制请求） */
@@ -101,53 +100,12 @@ function refreshHot(e) {
 onMounted(() => {
   loadHot('weibo')
 })
-
-onMounted(() => {
-  timer = setInterval(tick, 1000)
-  // 注：之前每 30 分钟自动刷天气已移除，改为每日缓存 + 手动刷新，
-  // 避免后台高频请求；需要更新时点卡片/弹窗上的刷新按钮即可
-})
-onUnmounted(() => {
-  clearInterval(timer)
-})
 </script>
 
 <template>
   <div class="widgets-bar">
-    <!-- 时钟卡片：点击打开世界时间弹窗 -->
-    <div
-      class="widget widget-clock"
-      role="button"
-      tabindex="0"
-      v-tip="$t('clock.viewWorldTime')"
-      :aria-label="$t('worldTime.title')"
-      @click="emit('open-worldtime')"
-      @keydown.enter="emit('open-worldtime')"
-    >
-      <div class="clock-time">
-        <span
-          v-for="(ch, i) in hhStr"
-          :key="'h' + i"
-          class="digit"
-        ><span :key="ch" class="digit-inner">{{ ch }}</span></span>
-        <span class="colon">:</span>
-        <span
-          v-for="(ch, i) in mmStr"
-          :key="'m' + i"
-          class="digit"
-        ><span :key="ch" class="digit-inner">{{ ch }}</span></span>
-        <span class="seconds">
-          <span class="colon colon-sec">:</span><span
-            v-for="(ch, i) in ssStr"
-            :key="'s' + i"
-            class="digit digit-sec"
-          ><span :key="ch" class="digit-inner">{{ ch }}</span></span>
-        </span>
-      </div>
-      <div class="clock-meta">
-        <span class="greeting">{{ greeting() }}</span>
-      </div>
-    </div>
+    <!-- 时钟卡片：独立子组件，秒级重渲染不波及其余卡片；点击打开世界时间弹窗 -->
+    <ClockCard @open-worldtime="emit('open-worldtime')" />
 
     <!-- 天气卡片：当前城市 + 今天天气 + 温度（右上刷新按钮强制更新） -->
     <div
@@ -193,9 +151,7 @@ onUnmounted(() => {
     <button class="widget widget-tile widget-cal" @click="emit('open-calendar')">
       <div class="w-title">{{ $t('widgets.calendar') }}</div>
       <div class="w-big">{{ todayInfo.day }}</div>
-      <div class="w-sub">
-        {{ $t('clock.lunarFormat', { month: todayInfo.lunarMonth, day: todayInfo.lunarDay, week: lunarWeek }) }}
-      </div>
+      <div class="w-sub">{{ todaySub }}</div>
     </button>
 
     <!-- 热榜卡片 tab 切换 + 主体点击打开弹窗（右上刷新按钮强制更新当前源） -->
@@ -296,15 +252,6 @@ onUnmounted(() => {
 }
 
 /* 时钟卡片：暖橙渐变（等宽网格下问候语纵向排列在时间下方，避免英文裁切）*/
-.widget-clock {
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 4px;
-  cursor: pointer;
-  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
-}
-
 /* 天气卡片：天蓝渐变*/
 .widget-weather {
   background: linear-gradient(135deg, #38bdf8 0%, @accent 100%);
@@ -516,93 +463,6 @@ onUnmounted(() => {
 .widget-clock:hover::after,
 .widget-hot:hover::after {
   left: 135%;
-}
-
-.clock-time {
-  display: flex;
-  align-items: baseline;
-  font-size: 32px;
-  font-weight: 700;
-  color: #fff;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum';
-  letter-spacing: 1px;
-  line-height: 1;
-
-  .colon {
-    margin: 0 1px;
-    animation: blink 1s steps(1) infinite;
-  }
-
-  .seconds {
-    display: inline-flex;
-    align-items: baseline;
-    font-size: 18px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.7);
-  }
-
-  /* 数字滚动：外层裁剪 + 内层进场动画，key 变化时自动触发 */
-  .digit {
-    display: inline-block;
-    overflow: hidden;
-    height: 1em;
-    line-height: 1;
-  }
-
-  .digit-inner {
-    display: inline-block;
-    line-height: 1;
-    will-change: transform, opacity;
-    animation: digit-roll 0.45s cubic-bezier(0.2, 0.7, 0.25, 1.15);
-  }
-
-  .digit-sec {
-    height: 1em;
-  }
-}
-
-@keyframes digit-roll {
-  0% {
-    transform: translateY(55%);
-    opacity: 0;
-    filter: blur(3px);
-  }
-  60% {
-    transform: translateY(-6%);
-    opacity: 1;
-    filter: blur(0);
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-    filter: blur(0);
-  }
-}
-
-@keyframes blink {
-  50% { opacity: 0.4; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .clock-time {
-    .digit-inner,
-    .colon {
-      animation: none;
-    }
-  }
-}
-
-.clock-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.greeting {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.95);
-  font-weight: 600;
 }
 
 .w-title {
