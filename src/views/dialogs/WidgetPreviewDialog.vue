@@ -42,6 +42,7 @@ const WallpaperPreview = lazyDialog(() => import('@/views/widgets/WallpaperPrevi
 const WeekReportPreview = lazyDialog(() => import('@/views/widgets/WeekReportPreview.vue'), { delay: 100, loading: WidgetLoading })
 const EncodeDecodePreview = lazyDialog(() => import('@/views/widgets/EncodeDecodePreview.vue'), { delay: 100, loading: WidgetLoading })
 const QrCodePreview = lazyDialog(() => import('@/views/widgets/QrCodePreview.vue'), { delay: 100, loading: WidgetLoading })
+const ContentDiffPreview = lazyDialog(() => import('@/views/widgets/ContentDiffPreview.vue'), { delay: 100, loading: WidgetLoading })
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -114,6 +115,7 @@ function minimize() {
               <WeekReportPreview v-else-if="widgetKey === 'week-report'" :key="widgetKey" />
               <EncodeDecodePreview v-else-if="widgetKey === 'encode-decode'" :key="widgetKey" />
               <QrCodePreview v-else-if="widgetKey === 'qr-code'" :key="widgetKey" />
+              <ContentDiffPreview v-else-if="widgetKey === 'content-diff'" :key="widgetKey" />
             </div>
           </div>
     <template #footer>

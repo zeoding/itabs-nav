@@ -475,6 +475,7 @@ export default {
     weekReport: 'Weekly Report',
     encodeDecode: 'Encode / Decode',
     qrCode: 'QR Code',
+    contentDiff: 'Content Diff',
   },
 
   // Encode / Decode / Crypto widget
@@ -572,6 +573,38 @@ export default {
     removeLogo: 'Remove',
     logoSize: 'Logo size',
     logoHint: 'Use error correction level H when a logo is present',
+  },
+
+  // Content diff widget (line-by-line comparison of two texts)
+  contentDiff: {
+    leftLabel: 'Original',
+    rightLabel: 'Compared',
+    leftPlaceholder: 'Paste the original text or code here…',
+    rightPlaceholder: 'Paste the text or code to compare against…',
+    viewSplit: 'Side by side',
+    viewUnified: 'Unified',
+    viewChanges: 'Changes only',
+    ignoreCase: 'Ignore case',
+    ignoreWhitespace: 'Ignore whitespace',
+    wrapLines: 'Wrap lines',
+    collapseSame: 'Collapse unchanged',
+    swap: 'Swap sides',
+    upload: 'Import file',
+    imported: 'Imported {name}',
+    importFail: 'Failed to read the file',
+    clear: 'Clear',
+    clearAll: 'Clear all',
+    hiddenLines: '{n} unchanged lines hidden',
+    summary: '{same} unchanged, {add} added, {del} removed, {mod} modified',
+    emptyHint: 'Enter content on both sides to see the line-by-line diff here',
+    identical: '✅ Both sides are identical',
+    tooLarge: 'Content too large (over {max} lines). Comparison stopped to keep the page responsive — please split it up.',
+    copyDiff: 'Copy diff',
+    copied: 'Diff copied to clipboard',
+    copyFail: 'Copy failed, check browser permissions',
+    noDiffToCopy: 'No differences to copy',
+    exportDiff: 'Export diff',
+    exported: 'Diff file exported',
   },
 
   editMode: {

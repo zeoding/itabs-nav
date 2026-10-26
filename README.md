@@ -40,6 +40,7 @@
   - 📊 **周报统计**：汇总页签含汇总表/明细表，数据页签为原始导入数据，支持 Excel 导出
   - 🌐 **网址导航**：添加站点弹窗内按分类浏览常用网站，支持搜索与目标面板选择，点击即添加
   - 📱 **二维码生成/解码**：生成网址/文本二维码，支持扫描解码
+  - 🔀 **内容对比**：两段文本/代码逐行 diff，高亮新增/删除/修改（词级细分），支持并排/统一/仅差异三视图、忽略大小写与空白、折叠相同行、导入文件、导出 diff
   - 🔐 **加密解码**：Base64 编码/解码，Hex 编码/解码，MD5 加密
   - ⏰ **世界时钟**：显示多个时区的当前时间
 
@@ -176,11 +177,9 @@ itabs-nav/
    │  ├─ sites/                # SiteGrid / SiteCard / SiteContextMenu / SiteEditor / AddCardMenu
    │  ├─ dialogs/              # Weather / Todo / Calendar / Hot / WorldTime / WidgetPreview
    │  ├─ settings/             # SettingsPanel / SettingsGeneral / SettingsData / SettingsAbout
-   │  └─ widgets/              # SplitTextPreview / EmailPreview / WallpaperPreview
-   └─ widgets/
-      ├─ WeekReportPreview.vue   # 周报统计组件
-      ├─ WorldTime.vue           # 世界时钟组件
-      └─ ...                     # 各类小组件预览
+   │  └─ widgets/              # SplitTextPreview / EmailPreview / WallpaperPreview / ContentDiffPreview 等工具预览
+   │                             #   └─ diffUtils.js  内容对比的 diff 算法（纯函数，Myers）
+   └─ widgets/                    （已废弃，组件统一收口在 views/widgets/）
 ```
 
 ---
@@ -256,6 +255,7 @@ location.reload()
 - [x] 周报统计 + Excel 导出
 - [x] 网址导航（站点分类浏览 + 搜索）
 - [x] 二维码生成/解码
+- [x] 内容对比（两段文本/代码逐行 diff）
 - [x] 加密解码工具
 
 ### 📭 计划中

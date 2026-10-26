@@ -489,6 +489,7 @@ export default {
     weekReport: '周报统计',
     encodeDecode: '编码解码',
     qrCode: '二维码',
+    contentDiff: '内容对比',
   },
 
   // 编码解码 / 加密解密小组件
@@ -586,6 +587,38 @@ export default {
     removeLogo: '移除',
     logoSize: 'Logo 尺寸',
     logoHint: '含 Logo 时建议容错级别 H',
+  },
+
+  // 内容对比小组件（两段文本逐行 diff）
+  contentDiff: {
+    leftLabel: '原始内容',
+    rightLabel: '对比内容',
+    leftPlaceholder: '在此粘贴原始文本或代码…',
+    rightPlaceholder: '在此粘贴用于对比的文本或代码…',
+    viewSplit: '并排',
+    viewUnified: '统一',
+    viewChanges: '仅差异',
+    ignoreCase: '忽略大小写',
+    ignoreWhitespace: '忽略空白',
+    wrapLines: '自动换行',
+    collapseSame: '折叠相同行',
+    swap: '交换两侧',
+    upload: '导入文件',
+    imported: '已导入 {name}',
+    importFail: '文件读取失败',
+    clear: '清空',
+    clearAll: '清空全部',
+    hiddenLines: '已折叠 {n} 行相同内容',
+    summary: '共 {same} 行相同，{add} 行新增，{del} 行删除，{mod} 行修改',
+    emptyHint: '在两侧输入内容后，这里会显示逐行差异对比',
+    identical: '✅ 两侧内容完全一致',
+    tooLarge: '内容过大（超过 {max} 行），已停止对比以避免页面卡顿，请分段处理',
+    copyDiff: '复制差异',
+    copied: '差异已复制到剪贴板',
+    copyFail: '复制失败，请检查浏览器权限',
+    noDiffToCopy: '当前没有差异可复制',
+    exportDiff: '导出 diff',
+    exported: '差异文件已导出',
   },
 
   // 编辑模式

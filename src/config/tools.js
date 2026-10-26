@@ -83,6 +83,15 @@ export const TOOLS = [
     categoryKey: 'siteEditor.widgetCats.tool',
     category: 'tool',
   },
+  {
+    kind: 'content-diff',
+    name: '内容对比',
+    icon: '🔀',
+    desc: '两段文本/代码逐行对比，高亮新增、删除与修改',
+    titleKey: 'widgets.contentDiff',
+    categoryKey: 'siteEditor.widgetCats.tool',
+    category: 'tool',
+  },
 ]
 
 /** kind → 工具定义 */
