@@ -130,6 +130,7 @@ export default {
       name: 'itabs-nav',
       version: 'v{version} · 纯前端导航页',
       buildDate: '构建日期',
+      github: '访问 GitHub 仓库',
       desc: 'iTab 风格的浏览器导航页：玻璃拟态、搜索引擎栏、拖拽排序、小组件（时钟/ 天气 / 待办 / 日历）、无后端，数据存储在浏览器 IndexedDB 中',
     },
     presetNames: {

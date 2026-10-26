@@ -126,6 +126,7 @@ export default {
       name: 'itabs-nav',
       version: 'v{version} · Pure front-end navigation page',
       buildDate: 'Built on',
+      github: 'Visit GitHub repository',
       desc: 'iTab-style browser start page: glassmorphism, search bar, drag-to-reorder, widgets (clock/weather/todo/calendar), no backend, data stored in browser IndexedDB',
     },
     presetNames: {

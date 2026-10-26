@@ -9,12 +9,15 @@ import { ref } from 'vue'
 import { $t } from '@/composables/useI18n'
 import { useUpdateChecker } from '@/composables/useUpdateChecker'
 import { useMessage } from '@/composables/useMessage'
-import { RiCompassDiscoverLine, RiRefreshLine } from '@remixicon/vue'
+import { openExternal } from '@/utils/openExternal'
+import { RiCompassDiscoverLine, RiRefreshLine, RiGithubLine } from '@remixicon/vue'
 
 /** 构建日期（vite.config define 注入，格式 YYYY-MM-DD HH:mm） */
 const buildDate = __BUILD_DATE__
 /** 应用版本（vite.config define 注入，取自 package.json version） */
 const appVersion = __APP_VERSION__
+/** GitHub 仓库地址（与 git remote 同源） */
+const REPO_URL = 'https://github.com/zeoding/itabs-nav'
 
 const { check } = useUpdateChecker()
 const message = useMessage()
@@ -47,10 +50,22 @@ async function onCheckUpdate() {
     <div class="about-name">{{ $t('settings.about.name') }}</div>
     <div class="about-ver">{{ $t('settings.about.version', { version: appVersion }) }}</div>
     <div class="about-build">{{ $t('settings.about.buildDate') }}：{{ buildDate }}</div>
-    <button class="about-check" type="button" :disabled="checking" @click="onCheckUpdate">
-      <RiRefreshLine size="14" :class="{ spinning: checking }" aria-hidden="true" />
-      {{ checking ? $t('update.checking') : $t('update.checkNow') }}
-    </button>
+    <div class="about-actions">
+      <button class="about-check" type="button" :disabled="checking" @click="onCheckUpdate">
+        <RiRefreshLine size="14" :class="{ spinning: checking }" aria-hidden="true" />
+        {{ checking ? $t('update.checking') : $t('update.checkNow') }}
+      </button>
+      <button
+        class="about-github"
+        type="button"
+        v-tip="$t('settings.about.github')"
+        :aria-label="$t('settings.about.github')"
+        @click="openExternal(REPO_URL)"
+      >
+        <RiGithubLine size="14" aria-hidden="true" />
+        GitHub
+      </button>
+    </div>
     <p class="about-desc">{{ $t('settings.about.desc') }}</p>
   </div>
 </template>
@@ -96,6 +111,13 @@ async function onCheckUpdate() {
   font-variant-numeric: tabular-nums;
 }
 
+/* 检查更新 + GitHub 仓库：一排两个胶囊按钮 */
+.about-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
 .about-check {
   display: inline-flex;
   align-items: center;
@@ -120,6 +142,25 @@ async function onCheckUpdate() {
 
   .spinning {
     animation: spin360 0.9s linear infinite;
+  }
+}
+
+/* GitHub 仓库跳转：中性色调，与主操作区分 */
+.about-github {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border: none;
+  border-radius: @radius-pill;
+  font-size: 12px;
+  color: @text;
+  background: rgba(31, 41, 55, 0.06);
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(31, 41, 55, 0.12);
   }
 }
 
