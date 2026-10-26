@@ -10,7 +10,7 @@
 
 ## 📁 仓库说明
 
-当前仓库即 `itabs-nav` 本体（v0.1+），所有新功能开发与维护均在此目录下进行。
+当前仓库即 `itabs-nav` 本体（v0.2.0+），所有新功能开发与维护均在此目录下进行。
 
 下文所有说明均针对本目录。
 
@@ -21,7 +21,7 @@
 ### 导航核心
 - 🚀 **多面板支持**：默认首页 + 用户自定义面板（左侧图标条切换，支持滚轮切换、拖拽排序）
 - 🔍 **搜索引擎栏**：9 个内置引擎（百度 / 必应 / 谷歌 / DuckDuckGo / 搜狗 / 360 / 夸克 / Yandex / 微信），点击触发器展开横向胶囊浮层，可新增 / 删除自定义引擎
-- 📌 **站点 CRUD**：添加 / 编辑 / 删除 / 调整大小（6 种尺寸：1x1 / 1x2 / 2x1 / 2x2 / 2x4 / 4x2）
+- 📌 **站点 CRUD**：添加 / 编辑 / 删除 / 调整大小（6 种尺寸：1x1 / 1x2 / 2x1 / 2x2 / 4x2）
 - 🖱️ **拖拽排序**：HTML5 DnD（站点卡片、待办、面板均支持）
 - 🖱️ **右键菜单**：站点卡片右键编辑 / 删除 / 调整大小；添加卡片右键进入「编辑主页」模式
 - 🎨 **玻璃拟态 UI**：Less 变量 + `backdrop-filter` 模糊
@@ -37,6 +37,11 @@
 - 🧰 **工具卡片**：站点 `kind` 扩展，点击打开预览弹窗（最小化后由底部任务栏承接）
   - ✂️ 文本分割（逗号/分号/斜杠/换行/自定义分隔，去重/计数/分组，CSV 导出）
   - 📫 免费邮箱 / 🖼️ 壁纸库（Wallhaven 搜索，sfw）
+  - 📊 **周报统计**：汇总页签含汇总表/明细表，数据页签为原始导入数据，支持 Excel 导出
+  - 🌐 **网址导航**：添加站点弹窗内按分类浏览常用网站，支持搜索与目标面板选择，点击即添加
+  - 📱 **二维码生成/解码**：生成网址/文本二维码，支持扫描解码
+  - 🔐 **加密解码**：Base64 编码/解码，Hex 编码/解码，MD5 加密
+  - ⏰ **世界时钟**：显示多个时区的当前时间
 
 ### 个性化
 - 🎨 **主题色**：颜色选择器 + 6 套预设
@@ -57,14 +62,14 @@
 ### 工程
 - ⚡ **Vite 8**（Rolldown）+ Vue 3（Composition API + `<script setup>`）+ Pinia
 - 📦 **按需加载**：天气/待办/日历/热搜/设置/站点编辑等弹窗走 `defineAsyncComponent`，首屏 JS 减半
-- 🗂️ **代码分割**：`codeSplitting.groups`（vendor-core / vendor-ui / thesvg-icons / vendor / dialogs / app-runtime；`@remixicon/vue` 需保持 tree-shaking，勿提高 vendor-core 优先级）
+- 🗂️ **代码分割**：`codeSplitting.groups`（vendor-core / vendor-ui / lunar-libs / crypto-libs / qr-libs / widget-libs / dialogs / app-runtime；`@remixicon/vue` 需保持 tree-shaking，勿提高 vendor-core 优先级）
 - 🗜️ **打包 zip**：`npm run build:zip` 一键生成部署包（`base: './'`，解压即 `index.html` + `favicon.ico` + `js/ + css/ + images/ + fonts/ + media/`，支持 `file://` 预览；文件名均带 hash）
 - 🕰️ **构建时间**：`__BUILD_DATE__` 编译期常量（本地时区 `YYYY-MM-DD HH:mm`）
 - 🔄 **版本更新提醒**：构建时自动生成 `dist/version.json`（版本号取自 `package.json`，更新说明提取自 `CHANGELOG.md` 同版本段落）；运行时启动首检 + 每 6h 轮询 + 标签页可见补检，发现新版本顶部弹提示条（立即刷新 / 稍后提醒 / 忽略此版本），设置 → 关于可手动检查。发版只需 bump version + 在 `CHANGELOG.md` 顶部追加 `## x.y.z` 段落
 - 🛡️ **错误隔离**：每个弹窗独立错误边界，单组件崩溃不影响全局
 - 💡 **v-tip**：自研全局 tooltip 指令替代原生 title
 - 🌐 **API 收口**：所有对外网络地址只允许出现在 `src/config/api.js`（uapis 聚合接口 + picsum/Wallhaven/Nominatim/imsyy 备源）
-- 🛡️ **外链白名单**：新标签页跳转统一走 `utils/openExternal`，仅放行 http/https（防备份导入注入 `javascript:` 等伪协议）
+- 🛡️ **外链白名单**：新标签页跳转统一走 `utils/openExternal`，仅放行 http/https（防备备导入注入 `javascript:` 等伪协议）
 - 🖼️ **图标策略**：站点 favicon 直取目标站 `/favicon.ico`（失败回退字母头像）；引擎图标走 `@thesvg/icons` 懒加载独立分包
 - 🧹 **ESLint**：`npm run lint`（flat config + vue3 essential 档，只管正确性，不掺格式规则）
 
@@ -112,11 +117,11 @@ npm run preview
 ```bash
 # 自定义后缀
 node scripts/zip.mjs release-candidate
-# → itabs-nav-v0.1.0-release-candidate.zip
+# → itabs-nav-v0.2.0-release-candidate.zip
 
 # 自定义输出目录
 node scripts/zip.mjs --out=releases
-# → releases/itabs-nav-v0.1.0-20240310-1230.zip
+# → releases/itabs-nav-v0.2.0-20240310-1230.zip
 ```
 
 zip 文件**不含** dist 目录层，解压后直接是 `index.html` + `favicon.ico` + `js/` + `css/` 等产物目录。
@@ -130,8 +135,9 @@ itabs-nav/
 ├─ index.html                # Vite 构建入口（必须在根目录，public/ 下的 html 不会被打包）
 ├─ public/
 │  └─ favicon.ico            # 静态资源原样拷贝到 dist/（index.html 以 ./favicon.ico 引用，兼容 file:// 与子路径）
-├─ vite.config.js              # Vite 配置（Less 全局变量注入 + manualChunks 拆分 + 相对 base）
+├─ vite.config.js              # Vite 配置（Less 全局变量注入 + codeSplitting 拆分 + 相对 base）
 ├─ package.json
+├─ CHANGELOG.md              # 版本更新说明
 ├─ scripts/
 │  └─ zip.mjs                  # 打包 zip 脚本
 └─ src/
@@ -142,9 +148,11 @@ itabs-nav/
    │  ├─ variables.less         # Less 变量（主题/圆角/过渡，自动注入各组件）
    │  └─ mobile.less            # 响应式
    ├─ config/
-   │  └─ api.js                # 对外 API 唯一收口（uapis/热榜/一言/壁纸/Wallhaven/favicon/搜索引擎）
+   │  ├─ api.js                # 对外 API 唯一收口（uapis/热榜/一言/壁纸/Wallhaven/favicon/搜索引擎）
+   │  └─ appConfig.js           # 应用配置（版本、构建时间等）
    ├─ data/
-   │  └─ regions.js            # 地区数据
+   │  ├─ regions.js            # 地区数据
+   │  └─ siteCategories.js     # 站点分类数据
    ├─ utils/                   # http / openExternal / dailyCache / lunar / thesvg / fullscreenMixin
    ├─ db/
    │  └─ index.js              # IndexedDB 数据层（sites/settings/todos/events/cache，v6；widgets 为旧版遗留表仅保留）
@@ -155,19 +163,24 @@ itabs-nav/
    │  ├─ useMessage.js         # 全局消息提示
    │  ├─ useConfirm.js         # 全局确认弹窗
    │  ├─ useTip.js             # tooltip 逻辑
-   │  └─ useEscapeClose.js     # Esc 关闭弹窗
+   │  ├─ useEscapeClose.js     # Esc 关闭弹窗
+   │  └─ useUpdateChecker.js   # 版本更新检查
    ├─ directives/
    │  └─ tip.js                # v-tip 全局指令
    ├─ components/
    │  ├─ BaseDialog.vue        # 弹窗基座
    │  └─ feedback/             # ConfirmHost / MessageHost / TipHost / AsyncLoading
-   └─ views/
-      ├─ layout/               # Sidebar / WidgetsBar / SayingFooter / Snowfall / WidgetTaskbar
-      ├─ search/               # SearchBar / EngineEditor
-      ├─ sites/                # SiteGrid / SiteCard / SiteContextMenu / SiteEditor / AddCardMenu
-      ├─ dialogs/              # Weather / Todo / Calendar / Hot / WidgetPreview
-      ├─ settings/             # SettingsPanel / SettingsGeneral / SettingsData / SettingsAbout
-      └─ widgets/              # SplitTextPreview / EmailPreview / WallpaperPreview
+   ├─ views/
+   │  ├─ layout/               # Sidebar / WidgetsBar / SayingFooter / Snowfall / WidgetTaskbar
+   │  ├─ search/               # SearchBar / EngineEditor
+   │  ├─ sites/                # SiteGrid / SiteCard / SiteContextMenu / SiteEditor / AddCardMenu
+   │  ├─ dialogs/              # Weather / Todo / Calendar / Hot / WorldTime / WidgetPreview
+   │  ├─ settings/             # SettingsPanel / SettingsGeneral / SettingsData / SettingsAbout
+   │  └─ widgets/              # SplitTextPreview / EmailPreview / WallpaperPreview
+   └─ widgets/
+      ├─ WeekReportPreview.vue   # 周报统计组件
+      ├─ WorldTime.vue           # 世界时钟组件
+      └─ ...                     # 各类小组件预览
 ```
 
 ---
@@ -184,6 +197,10 @@ itabs-nav/
 | HTTP | axios（经 `src/utils/http.js`，对外地址收口于 `src/config/api.js`） |
 | 日期 | lunar-javascript（农历 / 节气） |
 | 图标 | @remixicon/vue + @thesvg/icons（后者独立分包懒加载）；站点 favicon 直取目标站 `/favicon.ico` |
+| 编码/加密 | crypto-js（Base64/hex/MD5 编码解码） |
+| 二维码 | qrcode-generator / jsqr（生成与扫描） |
+| 数据可视化 | echarts（周报统计图表） |
+| Excel 导入导出 | xlsx（SheetJS） |
 | 打包 | adm-zip（devDep） |
 | 样式 | Less（变量全局注入 + 玻璃拟态） |
 
@@ -204,6 +221,9 @@ itabs-nav/
 - 控制台无额外日志
 - IndexedDB 存储位置：DevTools → Application → IndexedDB → `itabs-nav-db`（v6）
 - 包含 5 张活跃表：`sites` / `settings` / `todos` / `events` / `cache`（天气/热榜/一言每日缓存，不进备份；`widgets` 为旧版遗留表仅保留）
+- 新增表：
+  - `site_categories`：站点分类数据
+  - `qr_history`：二维码扫码历史
 
 清空所有数据：设置 → 数据管理 → 清空全部数据，或控制台执行：
 ```js
@@ -217,6 +237,7 @@ location.reload()
 ## 📋 路线图
 
 ### ✅ 已实现
+
 - [x] 多面板 + 自定义面板
 - [x] 拖拽排序（站点、面板、待办）
 - [x] 6 种站点尺寸
@@ -230,8 +251,19 @@ location.reload()
 - [x] JSON 备份导出 / 恢复导入 / 重置清空
 - [x] 一键打包 zip（`file://` 可预览，`__BUILD_DATE__` 构建时间）
 - [x] 弹窗懒加载 + loading 占位
-- [x] 代码分割（vendor-core / vendor-ui / thesvg-icons / vendor / dialogs / app-runtime）
+- [x] 代码分割（vendor-core / vendor-ui / lunar-libs / crypto-libs / qr-libs / widget-libs / dialogs / app-runtime）
+- [x] 版本更新提醒（自动检测 + 本地存储）
+- [x] 周报统计 + Excel 导出
+- [x] 网址导航（站点分类浏览 + 搜索）
+- [x] 二维码生成/解码
+- [x] 加密解码工具
 
 ### 📭 计划中
 - [ ] 浏览器扩展（Manifest V3）
 - [ ] 远程 widget 加载
+
+---
+
+## 📜 许可证
+
+MIT License - 详见 [LICENSE](LICENSE)
