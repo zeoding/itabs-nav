@@ -2,19 +2,13 @@
 /**
  * 版本更新提示条（配合 useUpdateChecker，App.vue 挂载一次）
  * - Teleport 到 body，fixed 顶部居中，玻璃拟态
- * - 发现新版本时从上滑入：版本号 + 更新说明（可折叠）+ 三个动作
- *   （立即刷新 / 稍后提醒 / 忽略此版本）
+ * - 发现新版本时从上滑入：仅一句提示 + 三个动作（立即刷新 / 稍后提醒 / 忽略此版本）
  */
-import { ref, computed } from 'vue'
 import { useUpdateChecker } from '@/composables/useUpdateChecker'
 import { $t } from '@/composables/useI18n'
 import { RiDownloadCloud2Line, RiRefreshLine, RiCloseLine } from '@remixicon/vue'
 
 const { updateState, dismiss, ignoreVersion, reload } = useUpdateChecker()
-/** 更新说明展开/收起（默认收起只显示一行提示，避免遮挡页面） */
-const notesOpen = ref(false)
-
-const hasNotes = computed(() => Boolean(updateState.available?.notes))
 </script>
 
 <template>
@@ -25,19 +19,7 @@ const hasNotes = computed(() => Boolean(updateState.available?.notes))
           <RiDownloadCloud2Line size="20" aria-hidden="true" />
         </div>
         <div class="update-body">
-          <div class="update-title">
-            {{ $t('update.found') }}
-            <span class="update-ver">v{{ updateState.available.version }}</span>
-          </div>
-          <button
-            v-if="hasNotes"
-            class="update-notes-toggle"
-            type="button"
-            @click="notesOpen = !notesOpen"
-          >
-            {{ $t('update.notes') }}{{ notesOpen ? '▲' : '▼' }}
-          </button>
-          <pre v-if="hasNotes && notesOpen" class="update-notes">{{ updateState.available.notes }}</pre>
+          <div class="update-title">{{ $t('update.found') }}</div>
         </div>
         <div class="update-actions">
           <button class="btn-primary" type="button" @click="reload">
@@ -67,7 +49,7 @@ const hasNotes = computed(() => Boolean(updateState.available?.notes))
   transform: translateX(-50%);
   z-index: 15000;
   display: flex;
-  align-items: flex-start;
+  align-items: center; /* 图标/标题/按钮高度不一，统一走垂直居中 */
   gap: 12px;
   max-width: min(520px, calc(100vw - 32px));
   padding: 12px 14px;
@@ -100,45 +82,6 @@ const hasNotes = computed(() => Boolean(updateState.available?.notes))
   font-size: 13px;
   font-weight: 600;
   line-height: 1.6;
-
-  .update-ver {
-    margin-left: 6px;
-    padding: 1px 8px;
-    border-radius: @radius-pill;
-    font-size: 12px;
-    font-variant-numeric: tabular-nums;
-    color: @accent;
-    background: @accent-soft;
-  }
-}
-
-.update-notes-toggle {
-  margin-top: 2px;
-  padding: 0;
-  border: none;
-  background: none;
-  font-size: 12px;
-  color: @text-soft;
-  cursor: pointer;
-
-  &:hover {
-    color: @accent;
-  }
-}
-
-.update-notes {
-  margin: 6px 0 0;
-  max-height: 160px;
-  overflow-y: auto;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  line-height: 1.7;
-  white-space: pre-line;
-  word-break: break-word;
-  font-family: inherit;
-  color: @text-soft;
-  background: rgba(127, 127, 127, 0.08);
 }
 
 .update-actions {

@@ -1,7 +1,7 @@
 {
   "name": "itabs-nav",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "类 iTab 的浏览器导航页（纯前端，数据存 IndexedDB）",
   "engines": {

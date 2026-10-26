@@ -141,7 +141,6 @@ export default {
   // Version update notice (top bar + manual check in About)
   update: {
     found: 'New version available',
-    notes: "What's new",
     refresh: 'Refresh now',
     later: 'Later',
     ignore: 'Skip this version',

@@ -145,7 +145,6 @@ export default {
   // 版本更新提醒（提示条 + 关于页手动检查）
   update: {
     found: '发现新版本',
-    notes: '更新内容',
     refresh: '立即刷新',
     later: '稍后提醒',
     ignore: '忽略此版本',
