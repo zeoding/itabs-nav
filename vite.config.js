@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { pwaPlugin } from './scripts/pwa.mjs'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import { fileURLToPath, URL } from 'node:url'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
@@ -67,7 +68,7 @@ function versionMetaPlugin() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue(), vueDevTools({ launchEditor: 'code' }), versionMetaPlugin()],
+  plugins: [vue(), vueDevTools({ launchEditor: 'code' }), versionMetaPlugin(), pwaPlugin()],
   // 路径别名：源码内统一用 @/... 引入，不再使用 ./ ../ 相对路径
   resolve: {
     alias: {

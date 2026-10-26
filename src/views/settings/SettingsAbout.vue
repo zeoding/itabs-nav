@@ -9,6 +9,7 @@ import { ref } from 'vue'
 import { $t } from '@/composables/useI18n'
 import { useUpdateChecker } from '@/composables/useUpdateChecker'
 import { useMessage } from '@/composables/useMessage'
+import { usePwa } from '@/composables/usePwa'
 import { openExternal } from '@/utils/openExternal'
 import { RiCompassDiscoverLine, RiRefreshLine, RiGithubLine } from '@remixicon/vue'
 
@@ -20,6 +21,7 @@ const appVersion = __APP_VERSION__
 const REPO_URL = 'https://github.com/zeoding/itabs-nav'
 
 const { check } = useUpdateChecker()
+const { pwaState, install } = usePwa()
 const message = useMessage()
 const checking = ref(false)
 
@@ -51,6 +53,9 @@ async function onCheckUpdate() {
     <div class="about-ver">{{ $t('settings.about.version', { version: appVersion }) }}</div>
     <div class="about-build">{{ $t('settings.about.buildDate') }}：{{ buildDate }}</div>
     <div class="about-actions">
+      <button v-if="pwaState.canInstall" class="about-check" type="button" @click="install">
+        {{ $t('pwa.install') }}
+      </button>
       <button class="about-check" type="button" :disabled="checking" @click="onCheckUpdate">
         <RiRefreshLine size="14" :class="{ spinning: checking }" aria-hidden="true" />
         {{ checking ? $t('update.checking') : $t('update.checkNow') }}
@@ -66,6 +71,11 @@ async function onCheckUpdate() {
         GitHub
       </button>
     </div>
+    <p v-if="pwaState.supported" class="about-pwa" role="status">
+      {{ pwaState.installed ? $t('pwa.installed') : $t('pwa.installHint') }}
+      <br />
+      {{ pwaState.offlineReady ? $t('pwa.offlineReady') : $t('pwa.preparing') }}
+    </p>
     <p class="about-desc">{{ $t('settings.about.desc') }}</p>
   </div>
 </template>
@@ -115,6 +125,7 @@ async function onCheckUpdate() {
 .about-actions {
   display: flex;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -164,6 +175,13 @@ async function onCheckUpdate() {
   }
 }
 
+
+.about-pwa {
+  margin: 14px 0 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: @text-soft;
+}
 
 .about-desc {
   margin-top: 14px;

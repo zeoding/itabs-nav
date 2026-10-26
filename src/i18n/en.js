@@ -16,6 +16,15 @@ export default {
     loading: 'Loading...',
   },
 
+  pwa: {
+    install: 'Install app',
+    installed: 'Running as an installed app',
+    installHint: 'Install from your browser menu. On iPhone / iPad, use Safari → Share → Add to Home Screen.',
+    offlineReady: 'Offline resources ready. Weather, trends and external websites still require a connection.',
+    preparing: 'Preparing offline resources. Stay online during the first visit.',
+    updateFailed: 'Update did not complete. Stay online and try again.',
+  },
+
   app: {
     searchPlaceholder: 'Search the web',
   },

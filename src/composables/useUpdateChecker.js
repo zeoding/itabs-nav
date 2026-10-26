@@ -1,5 +1,8 @@
 import { reactive } from 'vue'
 import { compareVersion } from '@/utils/version'
+import { applyPwaUpdate } from '@/composables/usePwa'
+import { useMessage } from '@/composables/useMessage'
+import { $t } from '@/composables/useI18n'
 
 /**
  * 版本更新检查（全局单例，设计参考 useMessage / useTip：composable + Host 组件分离）
@@ -155,9 +158,13 @@ function ignoreVersion(version) {
   updateState.available = null
 }
 
-/** 「立即刷新」：产物均为 hash 文件名，刷新即完成更新 */
-function reload() {
-  location.reload()
+/** PWA 先等待新资源缓存完整并激活；普通网页维持原刷新逻辑。 */
+async function reload() {
+  try {
+    if (!await applyPwaUpdate()) location.reload()
+  } catch {
+    useMessage().error($t('pwa.updateFailed'))
+  }
 }
 
 export function useUpdateChecker() {

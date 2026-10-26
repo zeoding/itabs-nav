@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from '@/App.vue'
+import { registerPwa } from '@/composables/usePwa'
 import '@/styles/main.less'
 import { $t } from '@/composables/useI18n'
 import { vTip, hookTipGlobalHide } from '@/directives/tip'
@@ -14,3 +15,4 @@ app.config.globalProperties.$t = $t
 app.directive('tip', vTip)
 hookTipGlobalHide()
 app.mount('#app')
+registerPwa()

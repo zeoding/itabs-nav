@@ -129,6 +129,30 @@ zip 文件**不含** dist 目录层，解压后直接是 `index.html` + `favicon
 
 ---
 
+## 📲 PWA 安装与离线使用
+
+生产构建自动生成 Web App Manifest 和 Service Worker，不增加第三方依赖；开发模式不注册 Service Worker，避免影响热更新。
+
+- **安装**：HTTPS 部署或通过 `npm run preview` 在 localhost 预览。支持安装提示的浏览器可在「设置 → 关于」点击「安装应用」，也可使用浏览器菜单；iPhone / iPad 在 Safari 的「共享 → 添加到主屏幕」安装。
+- **离线**：首次访问保持联网，关于页显示「离线资源已就绪」后再断网。构建产物中的 JS、CSS、懒加载工具和应用图标全部预缓存；站点与设置仍由 IndexedDB 保存。天气、热搜、壁纸、外部网站及在线 API 不保证离线可用。
+- **更新**：新版本后台下载完整后等待确认，顶部提示「立即刷新」会先激活新缓存再刷新，不会自动中断当前操作。「稍后」可延后本页更新；关闭全部旧页面后浏览器也可自然激活新版本。更新不会清除 IndexedDB 数据。
+- **部署**：支持域名根目录或子目录（例如 `/nav/`，入口请带尾斜杠）。将完整 `dist/` 一起发布，服务器需正确提供 `.webmanifest`（`application/manifest+json`）和 JS MIME 类型。建议 `sw.js`、`index.html`、`version.json` 使用 `Cache-Control: no-cache`，hash 静态资源使用长缓存；发布时短期保留上一版 hash 资源，避免仍打开的旧页面按需加载失败。
+- **边界**：非 HTTPS（localhost 除外）与 `file://` 不启用 PWA。Service Worker 只处理同源应用范围内的导航和构建清单资源，不缓存 API、版本检查或第三方请求。首次完整离线包会额外下载懒加载模块。
+
+验证：
+
+```bash
+npm run build
+npm run preview
+node tests/pwa.test.mjs
+# 重建安装图标（192/512、maskable 与 Apple touch 图标）
+node scripts/pwa-icons.mjs
+```
+
+浏览器 DevTools → Application 检查 Manifest / Service Workers；等待离线资源就绪后在 Network 选择 Offline，刷新并打开工具弹窗。重新构建部署后，在旧页面确认更新提示及「立即刷新」能切换到新版本。
+
+---
+
 ## 🏗️ 目录结构
 
 ```

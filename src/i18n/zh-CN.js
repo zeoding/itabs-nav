@@ -16,6 +16,15 @@ export default {
     loading: '加载中...',
   },
 
+  pwa: {
+    install: '安装应用',
+    installed: '已在独立应用模式中打开',
+    installHint: '可通过浏览器菜单安装；iPhone / iPad 请在 Safari 中选择“共享 → 添加到主屏幕”。',
+    offlineReady: '离线资源已就绪；天气、热搜、外部网站等仍需联网。',
+    preparing: '正在准备离线资源，首次使用请保持联网。',
+    updateFailed: '更新未完成，请保持联网后重试。',
+  },
+
   // 应用主体
   app: {
     searchPlaceholder: '搜索一下',

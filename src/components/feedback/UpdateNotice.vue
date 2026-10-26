@@ -8,13 +8,22 @@ import { useUpdateChecker } from '@/composables/useUpdateChecker'
 import { $t } from '@/composables/useI18n'
 import { RiDownloadCloud2Line, RiRefreshLine, RiCloseLine } from '@remixicon/vue'
 
+import { ref } from 'vue'
+import { usePwa } from '@/composables/usePwa'
+
 const { updateState, dismiss, ignoreVersion, reload } = useUpdateChecker()
+const { pwaState } = usePwa()
+const pwaDismissed = ref(false)
+function later() {
+  pwaDismissed.value = true
+  dismiss()
+}
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="update-slide">
-      <div v-if="updateState.available" class="update-notice" role="alert">
+      <div v-if="updateState.available || (pwaState.updateReady && !pwaDismissed)" class="update-notice" role="alert">
         <div class="update-icon">
           <RiDownloadCloud2Line size="20" aria-hidden="true" />
         </div>
@@ -22,12 +31,13 @@ const { updateState, dismiss, ignoreVersion, reload } = useUpdateChecker()
           <div class="update-title">{{ $t('update.found') }}</div>
         </div>
         <div class="update-actions">
-          <button class="btn-primary" type="button" @click="reload">
+          <button class="btn-primary" type="button" :disabled="pwaState.updating" @click="reload">
             <RiRefreshLine size="14" aria-hidden="true" />
             {{ $t('update.refresh') }}
           </button>
-          <button class="btn-ghost" type="button" @click="dismiss">{{ $t('update.later') }}</button>
+          <button class="btn-ghost" type="button" @click="later">{{ $t('update.later') }}</button>
           <button
+            v-if="updateState.available && !pwaState.updateReady"
             class="update-ignore"
             type="button"
             v-tip="$t('update.ignore')"
