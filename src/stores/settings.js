@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { defineStore } from 'pinia'
 import * as db from '@/db'
 import { SEARCH_ENGINES, DEFAULT_SEARCH_URL, WALLPAPER_API } from '@/config/api'
@@ -51,6 +51,9 @@ const DEFAULTS = {
 
 /** 随机壁纸可选刷新间隔（小时） */
 export const WALLPAPER_REFRESH_OPTIONS = [1, 4, 8, 12]
+
+/** 本地兜底壁纸：自定义/随机壁纸加载失败时顶上（public/ 下，已进 SW 预缓存） */
+const WALLPAPER_FALLBACK = `${import.meta.env.BASE_URL}wallhaven-yqkl97.jpg`
 
 /** 定时器 store 级单例 */
 let wallpaperTimer = null
@@ -205,20 +208,64 @@ export const useSettingsStore = defineStore('settings', () => {
     await set('currentEngineKey', key)
   }
 
-  const backgroundStyle = computed(() => {
+  /** 探活缓存：url -> 是否可用；同一地址（含相同 seed 的随机图）不重复请求 */
+  const wallpaperProbeCache = new Map()
+  /** 当前壁纸是否探活失败；失败时 backgroundStyle 顶本地兜底图 */
+  const wallpaperBroken = ref(false)
+
+  /** 当前生效的壁纸 URL；gradient 模式返回空串 */
+  const requestedWallpaper = computed(() => {
     const { wallpaperMode, wallpaper } = settings.value
-    const seed = wallpaperSeed.value
-    if (wallpaperMode === 'image' && wallpaper) {
-      return {
-        backgroundImage: `url(${wallpaper})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-      }
+    if (wallpaperMode === 'image' && wallpaper) return wallpaper
+    if (wallpaperMode === 'random') return WALLPAPER_API.random(wallpaperSeed.value)
+    return ''
+  })
+
+  /** 背景图加载失败不派发任何事件，用 Image 预加载探活 */
+  function probeWallpaper(url) {
+    const cached = wallpaperProbeCache.get(url)
+    if (cached !== undefined) {
+      wallpaperBroken.value = !cached
+      return
     }
-    if (wallpaperMode === 'random') {
+    if (typeof Image === 'undefined') return
+    const img = new Image()
+    img.onload = () => {
+      wallpaperProbeCache.set(url, true)
+      if (requestedWallpaper.value === url) wallpaperBroken.value = false
+    }
+    img.onerror = () => {
+      wallpaperProbeCache.set(url, false)
+      if (requestedWallpaper.value === url) wallpaperBroken.value = true
+    }
+    img.src = url
+  }
+
+  watch(
+    requestedWallpaper,
+    (url) => {
+      wallpaperBroken.value = false // 先按可用展示，探活失败同 tick 内会被缓存/回调纠正
+      if (url) probeWallpaper(url)
+    },
+    { immediate: true }
+  )
+
+  /* 断网恢复后清缓存重探当前壁纸，自动解除兜底态 */
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => {
+      const url = requestedWallpaper.value
+      if (!url) return
+      wallpaperProbeCache.delete(url)
+      wallpaperBroken.value = false
+      probeWallpaper(url)
+    })
+  }
+
+  const backgroundStyle = computed(() => {
+    const url = requestedWallpaper.value
+    if (url) {
       return {
-        backgroundImage: `url(${WALLPAPER_API.random(seed)})`,
+        backgroundImage: `url(${wallpaperBroken.value ? WALLPAPER_FALLBACK : url})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
