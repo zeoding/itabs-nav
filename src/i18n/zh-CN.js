@@ -513,6 +513,8 @@ export default {
     moveDown: '下移',
     merge: '合并并下载',
     merging: '合并中…',
+    outputName: '文件名',
+    namePlaceholder: '请输入文件名',
     done: '已生成「{name}」',
     failed: '合并失败，请重试',
     fileFailed: '「{name}」无法读取，可能已损坏或加密',

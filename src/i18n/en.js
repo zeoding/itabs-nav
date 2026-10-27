@@ -499,6 +499,8 @@ export default {
     moveDown: 'Move down',
     merge: 'Merge & download',
     merging: 'Merging…',
+    outputName: 'File name',
+    namePlaceholder: 'Enter file name',
     done: 'Generated "{name}"',
     failed: 'Merge failed, please retry',
     fileFailed: '"{name}" could not be read (corrupted or encrypted?)',

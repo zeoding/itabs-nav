@@ -117,12 +117,25 @@ function clearAll() {
   files.value = []
 }
 
-/** 输出文件名：pdf-merge-YYYYMMDD-HHmmss.pdf */
-function outputName() {
+/** 默认输出名（不含扩展名）：pdf-merge-YYYYMMDD-HHmmss */
+function defaultBase() {
   const d = new Date()
   const pad = (n) => String(n).padStart(2, '0')
-  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
-  return `pdf-merge-${stamp}.pdf`
+  return `pdf-merge-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+}
+
+/** 输出文件名（不含扩展名），界面可编辑；.pdf 后缀固定补上 */
+const baseName = ref(defaultBase())
+
+/** 清洗用户输入：去掉 Windows 非法字符、手滑多打的 .pdf 后缀和结尾空白/点；空则回退默认名。
+ *  顺序敏感：先摘 .pdf（连同其后尾巴），再扫结尾空白/点——反序会把「file.pdf.」洗成「file.pdf.pdf」 */
+function sanitizeName(raw) {
+  const cleaned = raw
+    .replace(/[\\/:*?"<>|]/g, '')
+    .replace(/\.pdf[\s.]*$/i, '')
+    .replace(/[\s.]+$/g, '')
+    .trim()
+  return cleaned || defaultBase()
 }
 
 async function merge() {
@@ -142,7 +155,9 @@ async function merge() {
       }
     }
     const bytes = await out.save()
-    const name = outputName()
+    const base = sanitizeName(baseName.value)
+    baseName.value = base // 清洗结果回填输入框，实际文件名对用户可见
+    const name = `${base}.pdf`
     downloadBlob(new Blob([bytes], { type: 'application/pdf' }), name)
     message.success($t('pdfMerge.done', { name }))
   } catch (error) {
@@ -223,6 +238,24 @@ async function merge() {
     </ul>
 
     <p v-else class="empty-tip">{{ $t('pdfMerge.empty') }}</p>
+
+    <!-- 输出文件名：可编辑，.pdf 后缀固定补上 -->
+    <div class="name-row">
+      <label class="name-label" for="pdf-merge-name">{{ $t('pdfMerge.outputName') }}</label>
+      <div class="name-field">
+        <input
+          id="pdf-merge-name"
+          v-model="baseName"
+          class="name-input"
+          type="text"
+          :placeholder="$t('pdfMerge.namePlaceholder')"
+          :disabled="merging"
+          maxlength="120"
+          @keydown.enter="merge"
+        />
+        <span class="name-ext">.pdf</span>
+      </div>
+    </div>
 
     <!-- 统计 + 合并动作 -->
     <div class="merge-bar">
@@ -387,6 +420,63 @@ async function merge() {
   font-size: 12px;
   color: @text-soft;
   text-align: center;
+}
+
+/* 输出文件名 */
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.name-label {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: @text-soft;
+}
+
+.name-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: @radius-card;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid color-mix(in srgb, @accent 0.12%, transparent);
+  transition: border-color 0.15s ease;
+
+  &:focus-within {
+    border-color: @accent;
+  }
+}
+
+.name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 0;
+  border: none;
+  outline: none;
+  background: none;
+  font-size: 12.5px;
+  color: @text;
+  font-variant-numeric: tabular-nums;
+
+  &::placeholder {
+    color: @text-soft;
+    opacity: 0.7;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.name-ext {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  color: @text-soft;
+  user-select: none;
 }
 
 /* 统计 + 合并按钮 */
