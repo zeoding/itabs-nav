@@ -511,7 +511,7 @@ export default {
     clear: '清空',
     moveUp: '上移',
     moveDown: '下移',
-    merge: '合并并下载',
+    merge: '合并并预览',
     merging: '合并中…',
     outputName: '文件名',
     namePlaceholder: '请输入文件名',

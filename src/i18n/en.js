@@ -497,7 +497,7 @@ export default {
     clear: 'Clear',
     moveUp: 'Move up',
     moveDown: 'Move down',
-    merge: 'Merge & download',
+    merge: 'Merge & preview',
     merging: 'Merging…',
     outputName: 'File name',
     namePlaceholder: 'Enter file name',

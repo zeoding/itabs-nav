@@ -2,16 +2,17 @@
 /**
  * PDF 工具（合并 / 拆分 / 水印）壳组件。
  *
- * 结构：模式 Tab + 三个功能面板 + 共享预览面板。
- * 预览用 blob URL + iframe 交给浏览器原生 PDF 查看器，零依赖、可缩放翻页；
- * 面板生成文件后 emit('preview', { blob, name })，壳统一创建/回收对象 URL
- * （打开新预览与组件卸载时 revoke，避免内存泄漏）。
+ * 结构：模式 Tab + 三个功能面板 + 预览弹窗。
+ * 面板生成文件后 emit('preview', { blob, name })，壳用统一弹窗 BaseDialog
+ * 展示（Teleport 到 body，不挤卡片内布局），iframe 交给浏览器原生 PDF 查看
+ * 器，弹窗底部提供下载按钮；对象 URL 在下次预览/组件卸载时回收。
  * 三个面板只带结构，共享样式全部集中在下方 :deep 区，避免三份拷贝。
  */
 import { computed, onBeforeUnmount, ref, shallowRef } from 'vue'
 import { $t } from '@/composables/useI18n'
+import BaseDialog from '@/components/BaseDialog.vue'
 import { downloadBlob } from '@/utils/download'
-import { RiCloseLine, RiDownloadLine, RiFilePdf2Line } from '@remixicon/vue'
+import { RiDownloadLine } from '@remixicon/vue'
 import PdfMergePane from './pdf/PdfMergePane.vue'
 import PdfSplitPane from './pdf/PdfSplitPane.vue'
 import PdfWatermarkPane from './pdf/PdfWatermarkPane.vue'
@@ -26,16 +27,17 @@ const mode = ref('merge')
 const activeComp = computed(() => modes.find((m) => m.key === mode.value)?.component)
 
 const preview = shallowRef(null) // { url, name, blob }
+const previewOpen = ref(false)
 
 function openPreview({ blob, name }) {
   if (preview.value) URL.revokeObjectURL(preview.value.url)
   preview.value = { url: URL.createObjectURL(blob), name, blob }
+  previewOpen.value = true
 }
 
+/* 关闭只收起弹窗；URL 留到下次 openPreview / 组件卸载时回收，退出动画期间标题不闪空 */
 function closePreview() {
-  if (!preview.value) return
-  URL.revokeObjectURL(preview.value.url)
-  preview.value = null
+  previewOpen.value = false
 }
 
 function downloadPreview() {
@@ -43,7 +45,9 @@ function downloadPreview() {
   downloadBlob(preview.value.blob, preview.value.name)
 }
 
-onBeforeUnmount(closePreview)
+onBeforeUnmount(() => {
+  if (preview.value) URL.revokeObjectURL(preview.value.url)
+})
 </script>
 
 <template>
@@ -66,23 +70,29 @@ onBeforeUnmount(closePreview)
 
     <component :is="activeComp" @preview="openPreview" />
 
-    <!-- 生成结果预览：浏览器原生 PDF 查看器 -->
-    <div v-if="preview" class="preview-panel">
-      <header class="pv-head">
-        <RiFilePdf2Line size="14" class="pv-icon" aria-hidden="true" />
-        <span class="pv-name" :title="preview.name">{{ preview.name }}</span>
-        <div class="pv-ops">
-          <button type="button" class="pv-btn" @click="downloadPreview">
+    <!-- 生成结果预览弹窗：z-index 高于外层 WidgetPreviewDialog(100) -->
+    <BaseDialog
+      :open="previewOpen"
+      :title="preview?.name"
+      width="min(960px, 94vw)"
+      height="86vh"
+      max-height="92vh"
+      padding="16px 16px 14px"
+      :z-index="200"
+      @close="closePreview"
+    >
+      <div v-if="preview" class="pv-body">
+        <iframe class="pv-frame" :src="preview.url" :title="preview.name" />
+      </div>
+      <template #footer>
+        <div v-if="preview" class="pv-footer">
+          <button type="button" class="pv-download" @click="downloadPreview">
             <RiDownloadLine size="14" aria-hidden="true" />
             {{ $t('pdfMerge.download') }}
           </button>
-          <button type="button" class="pv-btn" :aria-label="$t('common.close')" @click="closePreview">
-            <RiCloseLine size="14" aria-hidden="true" />
-          </button>
         </div>
-      </header>
-      <iframe class="pv-frame" :src="preview.url" :title="preview.name" />
-    </div>
+      </template>
+    </BaseDialog>
   </div>
 </template>
 
@@ -125,65 +135,46 @@ onBeforeUnmount(closePreview)
   }
 }
 
-/* ===== 预览面板 ===== */
-.preview-panel {
-  border: 1px solid color-mix(in srgb, @accent 0.15%, transparent);
-  border-radius: @radius-card;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.55);
-}
-
-.pv-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px 6px 10px;
-  border-bottom: 1px solid color-mix(in srgb, @accent 0.1%, transparent);
-}
-
-.pv-icon {
-  flex: 0 0 auto;
-  color: @accent;
-}
-
-.pv-name {
+/* ===== 预览弹窗 ===== */
+.pv-body {
   flex: 1;
-  min-width: 0;
-  font-size: 12px;
-  color: @text;
-  .ellipsis();
-}
-
-.pv-ops {
-  flex: 0 0 auto;
+  min-height: 0;
   display: flex;
-  gap: 4px;
-}
-
-.pv-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border: none;
-  border-radius: @radius-card;
-  background: none;
-  font-size: 12px;
-  color: @accent;
-  cursor: pointer;
-  transition: background 0.15s ease;
-
-  &:hover {
-    background: @accent-soft;
-  }
 }
 
 .pv-frame {
-  display: block;
-  width: 100%;
-  height: 340px;
+  flex: 1;
+  min-height: 0;
   border: none;
   background: #525659; // 与 Chrome 内置 PDF 查看器底色一致
+}
+
+.pv-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.pv-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: @radius-pill;
+  font-size: 13px;
+  color: #fff;
+  background: @accent-gradient;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: 0 4px 14px color-mix(in srgb, @accent 40%, transparent);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
 }
 
 /* ===== 三个功能面板的共享样式（pane 内无 scoped 样式，全部在此 :deep 提供） ===== */

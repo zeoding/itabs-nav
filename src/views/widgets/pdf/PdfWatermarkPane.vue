@@ -8,7 +8,6 @@
 import { ref, shallowRef } from 'vue'
 import { useMessage } from '@/composables/useMessage'
 import { $t } from '@/composables/useI18n'
-import { downloadBlob } from '@/utils/download'
 import { addWatermark, formatBytes, loadPdf, sanitizePdfName } from '@/utils/pdfTools'
 import { RiDropLine, RiFilePdf2Line, RiFilePdfLine, RiLoader4Line } from '@remixicon/vue'
 
@@ -88,7 +87,6 @@ async function run() {
     await addWatermark(doc, { text, fontSize: fontSize.value, opacity: opacity.value, angle: angle.value })
     const name = `${sanitizePdfName(file.value.name)}-watermark.pdf`
     const blob = new Blob([await doc.save()], { type: 'application/pdf' })
-    downloadBlob(blob, name)
     emit('preview', { blob, name })
     message.success($t('pdfMerge.done', { name }))
   } catch {

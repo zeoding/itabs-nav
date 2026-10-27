@@ -2,18 +2,17 @@
 /**
  * 合并面板：多份 PDF 排序后合并为一个文件。
  * 排序/增删用 shallowRef 整组替换（File/Blob 不做深度响应化，避免 Proxy
- * 包装影响第三方库读取）；合并结果下载并 emit('preview') 交给壳组件预览。
+ * 包装影响第三方库读取）；合并结果 emit('preview') 交给壳组件弹窗预览，下载在弹窗内完成。
  */
 import { computed, ref, shallowRef } from 'vue'
 import { useMessage } from '@/composables/useMessage'
 import { $t } from '@/composables/useI18n'
-import { downloadBlob } from '@/utils/download'
 import { createPdf, formatBytes, loadPdf, sanitizePdfName } from '@/utils/pdfTools'
 import {
   RiArrowDownLine,
   RiArrowUpLine,
   RiCloseLine,
-  RiDownloadLine,
+  RiEyeLine,
   RiFilePdf2Line,
   RiFilePdfLine,
   RiLoader4Line,
@@ -128,7 +127,6 @@ async function merge() {
     baseName.value = base // 清洗结果回填输入框，实际文件名对用户可见
     const name = `${base}.pdf`
     const blob = new Blob([await out.save()], { type: 'application/pdf' })
-    downloadBlob(blob, name)
     emit('preview', { blob, name })
     message.success($t('pdfMerge.done', { name }))
   } catch (error) {
@@ -238,7 +236,7 @@ async function merge() {
       </span>
       <button class="primary-btn" type="button" :disabled="!canMerge || merging" @click="merge">
         <RiLoader4Line v-if="merging" size="14" class="spin" aria-hidden="true" />
-        <RiDownloadLine v-else size="14" aria-hidden="true" />
+        <RiEyeLine v-else size="14" aria-hidden="true" />
         {{ merging ? $t('pdfMerge.merging') : $t('pdfMerge.merge') }}
       </button>
     </div>
