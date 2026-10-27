@@ -174,6 +174,14 @@ export default defineConfig({
               priority: 25,
             },
             {
+              // PDF 合并 widget 专用依赖（pdf-lib）：
+              // 独立分包，组件内首次点「合并」才动态 import（打开面板不下载 ~500KB），
+              // 命名成块后进 PWA 预缓存，避免落进 vendor 兜底块与首屏依赖混包
+              name: 'pdf-libs',
+              test: /node_modules[\\/]pdf-lib/,
+              priority: 25,
+            },
+            {
               // 弹窗/编辑器类懒加载 chunk 的统一归集。
               // 注意：WidgetPreviewDialog 必须列在这里 —— 它内部静态引入了全部
               // widget 预览组件，是 dialogs 块体积的主要来源；漏掉它会落进 vendor

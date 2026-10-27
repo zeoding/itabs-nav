@@ -499,6 +499,24 @@ export default {
     encodeDecode: '编码解码',
     qrCode: '二维码',
     contentDiff: '内容对比',
+    pdfMerge: 'PDF合并',
+  },
+
+  // PDF 合并小组件
+  pdfMerge: {
+    addHint: '点击选择或拖拽 PDF 到此处',
+    pick: '支持多选，仅限 PDF 文件',
+    empty: '尚未添加文件，至少需要 2 个 PDF 才能合并',
+    count: '已选 {n} 个文件',
+    clear: '清空',
+    moveUp: '上移',
+    moveDown: '下移',
+    merge: '合并并下载',
+    merging: '合并中…',
+    done: '已生成「{name}」',
+    failed: '合并失败，请重试',
+    fileFailed: '「{name}」无法读取，可能已损坏或加密',
+    invalidType: '仅支持 PDF 文件：{name}',
   },
 
   // 编码解码 / 加密解密小组件

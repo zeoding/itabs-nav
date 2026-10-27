@@ -92,6 +92,15 @@ export const TOOLS = [
     categoryKey: 'siteEditor.widgetCats.tool',
     category: 'tool',
   },
+  {
+    kind: 'pdf-merge',
+    name: 'PDF合并',
+    icon: '📄',
+    desc: '多份 PDF 拖入排序，按顺序合并为一个文件，纯本地处理不上传',
+    titleKey: 'widgets.pdfMerge',
+    categoryKey: 'siteEditor.widgetCats.tool',
+    category: 'tool',
+  },
 ]
 
 /** kind → 工具定义 */

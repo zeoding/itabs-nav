@@ -43,6 +43,7 @@ const WeekReportPreview = lazyDialog(() => import('@/views/widgets/WeekReportPre
 const EncodeDecodePreview = lazyDialog(() => import('@/views/widgets/EncodeDecodePreview.vue'), { delay: 100, loading: WidgetLoading })
 const QrCodePreview = lazyDialog(() => import('@/views/widgets/QrCodePreview.vue'), { delay: 100, loading: WidgetLoading })
 const ContentDiffPreview = lazyDialog(() => import('@/views/widgets/ContentDiffPreview.vue'), { delay: 100, loading: WidgetLoading })
+const PdfMergePreview = lazyDialog(() => import('@/views/widgets/PdfMergePreview.vue'), { delay: 100, loading: WidgetLoading })
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -116,6 +117,7 @@ function minimize() {
               <EncodeDecodePreview v-else-if="widgetKey === 'encode-decode'" :key="widgetKey" />
               <QrCodePreview v-else-if="widgetKey === 'qr-code'" :key="widgetKey" />
               <ContentDiffPreview v-else-if="widgetKey === 'content-diff'" :key="widgetKey" />
+              <PdfMergePreview v-else-if="widgetKey === 'pdf-merge'" :key="widgetKey" />
             </div>
           </div>
     <template #footer>

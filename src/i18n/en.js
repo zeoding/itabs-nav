@@ -485,6 +485,24 @@ export default {
     encodeDecode: 'Encode / Decode',
     qrCode: 'QR Code',
     contentDiff: 'Content Diff',
+    pdfMerge: 'PDF Merge',
+  },
+
+  // PDF merge widget
+  pdfMerge: {
+    addHint: 'Click or drag PDF files here',
+    pick: 'Multiple selection, PDF files only',
+    empty: 'No files yet — at least 2 PDFs are needed to merge',
+    count: '{n} file(s) selected',
+    clear: 'Clear',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    merge: 'Merge & download',
+    merging: 'Merging…',
+    done: 'Generated "{name}"',
+    failed: 'Merge failed, please retry',
+    fileFailed: '"{name}" could not be read (corrupted or encrypted?)',
+    invalidType: 'PDF files only: {name}',
   },
 
   // Encode / Decode / Crypto widget
