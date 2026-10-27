@@ -506,6 +506,7 @@ export default {
   pdfMerge: {
     addHint: '点击选择或拖拽 PDF 到此处',
     pick: '支持多选，仅限 PDF 文件',
+    singlePick: '仅限单个 PDF 文件',
     empty: '尚未添加文件，至少需要 2 个 PDF 才能合并',
     count: '已选 {n} 个文件',
     clear: '清空',
@@ -513,6 +514,7 @@ export default {
     moveDown: '下移',
     merge: '合并并预览',
     merging: '合并中…',
+    working: '处理中…',
     outputName: '文件名',
     namePlaceholder: '请输入文件名',
     done: '已生成「{name}」',

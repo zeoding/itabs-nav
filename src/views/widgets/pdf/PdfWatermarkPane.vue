@@ -116,7 +116,7 @@ async function run() {
     >
       <RiFilePdf2Line size="30" aria-hidden="true" />
       <p class="dz-main">{{ $t('pdfMerge.singleAddHint') }}</p>
-      <span class="dz-hint">{{ $t('pdfMerge.pick') }}</span>
+      <span class="dz-hint">{{ $t('pdfMerge.singlePick') }}</span>
       <input
         ref="inputRef"
         type="file"
@@ -179,7 +179,7 @@ async function run() {
         <button type="button" class="primary-btn" :disabled="!file || working" @click="run">
           <RiLoader4Line v-if="working" size="14" class="spin" aria-hidden="true" />
           <RiDropLine v-else size="14" aria-hidden="true" />
-          {{ working ? $t('pdfMerge.merging') : $t('pdfMerge.wmRun') }}
+          {{ working ? $t('pdfMerge.working') : $t('pdfMerge.wmRun') }}
         </button>
       </div>
     </template>

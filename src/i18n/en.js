@@ -492,6 +492,7 @@ export default {
   pdfMerge: {
     addHint: 'Click or drag PDF files here',
     pick: 'Multiple selection, PDF files only',
+    singlePick: 'Single PDF file only',
     empty: 'No files yet — at least 2 PDFs are needed to merge',
     count: '{n} file(s) selected',
     clear: 'Clear',
@@ -499,6 +500,7 @@ export default {
     moveDown: 'Move down',
     merge: 'Merge & preview',
     merging: 'Merging…',
+    working: 'Working…',
     outputName: 'File name',
     namePlaceholder: 'Enter file name',
     done: 'Generated "{name}"',

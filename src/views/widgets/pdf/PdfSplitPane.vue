@@ -147,7 +147,7 @@ function eachPage() {
     >
       <RiFilePdf2Line size="30" aria-hidden="true" />
       <p class="dz-main">{{ $t('pdfMerge.singleAddHint') }}</p>
-      <span class="dz-hint">{{ $t('pdfMerge.pick') }}</span>
+      <span class="dz-hint">{{ $t('pdfMerge.singlePick') }}</span>
       <input
         ref="inputRef"
         type="file"
@@ -217,7 +217,7 @@ function eachPage() {
         <button type="button" class="primary-btn" :disabled="!canRun || working" @click="runSplit">
           <RiLoader4Line v-if="working" size="14" class="spin" aria-hidden="true" />
           <RiDownloadLine v-else size="14" aria-hidden="true" />
-          {{ working ? $t('pdfMerge.merging') : $t('pdfMerge.splitRun') }}
+          {{ working ? $t('pdfMerge.working') : $t('pdfMerge.splitRun') }}
         </button>
       </div>
     </template>
