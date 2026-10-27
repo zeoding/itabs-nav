@@ -290,23 +290,33 @@ const todayInfo = computed(() => {
                   {{ $t('calendar.detailDate', { m: todayInfo.date.getMonth() + 1, w: todayInfo.weekDay, month: $t('calendar.months')[todayInfo.date.getMonth()], year: todayInfo.date.getFullYear(), week: $t('calendar.weekdays')[todayInfo.date.getDay() === 0 ? 6 : todayInfo.date.getDay() - 1] }) }}
                 </div>
               </div>
-              <div v-if="todayInfo.lunarLabel" class="info-lunar">
-                {{ todayInfo.lunarLabel }}
+              <!-- 全部节日/节气：按类型着色 chips -->
+              <div v-if="todayInfo.festivals.length" class="info-festivals">
+                <span
+                  v-for="(f, i) in todayInfo.festivals"
+                  :key="i"
+                  class="fest-chip"
+                  :class="`kind-${f.type}`"
+                >{{ f.name }}</span>
               </div>
-              <!-- 完整农历：年月/ 生肖 / 农历月日 -->
-              <div class="lunar-detail">
-                <span class="lunar-year">
-                  {{ todayInfo.lunar.yearInGanZhi }}</span>
-                <span class="lunar-zodiac">
-                  {{ $t('calendar.zodiacAnimal', { x: $t('calendar.animals.' + todayInfo.lunar.shengXiao) }) }}
-                </span>
-                <span class="lunar-month">
-                  {{ todayInfo.lunar.monthInChinese }}月{{ todayInfo.lunar.dayInChinese }}
-                </span>
-              </div>
-                <div class="info-zodiac">
-                  <span class="zodiac-label">{{ $t('calendar.sign') }}</span>
-                <span class="zodiac-name">{{ todayInfo.zodiac ? $t('calendar.zodiac.' + todayInfo.zodiac) : '' }}</span>
+              <!-- 历法速览：农历 / 干支 / 生肖 / 星座 -->
+              <div class="lunar-grid">
+                <div class="lg-item">
+                  <span class="lg-label">{{ $t('calendar.lunarDate') }}</span>
+                  <span class="lg-value">{{ todayInfo.lunar.monthInChinese }}月{{ todayInfo.lunar.dayInChinese }}</span>
+                </div>
+                <div class="lg-item">
+                  <span class="lg-label">{{ $t('calendar.ganZhi') }}</span>
+                  <span class="lg-value">{{ todayInfo.lunar.yearInGanZhi }}年</span>
+                </div>
+                <div class="lg-item">
+                  <span class="lg-label">{{ $t('calendar.zodiacLabel') }}</span>
+                  <span class="lg-value">{{ $t('calendar.animals.' + todayInfo.lunar.shengXiao) }}</span>
+                </div>
+                <div class="lg-item">
+                  <span class="lg-label">{{ $t('calendar.sign') }}</span>
+                  <span class="lg-value">{{ todayInfo.zodiac ? $t('calendar.zodiac.' + todayInfo.zodiac) : '—' }}</span>
+                </div>
               </div>
             </div>
 
@@ -327,7 +337,7 @@ const todayInfo = computed(() => {
               </div>
             </div>
 
-            <!-- 黄历附加：值神 / 星宿 / 彭祖百忌 -->
+            <!-- 黄历附加：胎神 / 太岁 / 星宿 / 彭祖百忌 -->
             <div class="almanac glass">
               <div class="almanac-row">
                 <div class="ar-item">
@@ -339,6 +349,10 @@ const todayInfo = computed(() => {
                   <span class="ar-value">
                     {{ todayInfo.almanac.taiSui }}
                   </span>
+                </div>
+                <div class="ar-item">
+                  <span class="ar-label">{{ $t('calendar.xiuLabel') }}</span>
+                  <span class="ar-value">{{ todayInfo.almanac.xiu }}</span>
                 </div>
               </div>
               <div v-if="todayInfo.almanac.xiuSong" class="xiu-song">
@@ -667,20 +681,25 @@ const todayInfo = computed(() => {
   border-radius: @radius-card;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+}
+
+.info-date {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .big-date {
-  font-size: 44px;
+  font-size: 40px;
   font-weight: 700;
   line-height: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 76px;
-  height: 76px;
-  padding: 0 14px;
-  margin-bottom: 14px;
+  min-width: 68px;
+  height: 68px;
+  padding: 0 12px;
   border-radius: 16px;
   color: #ffffff;
   background:
@@ -688,43 +707,70 @@ const todayInfo = computed(() => {
     @accent-gradient border-box;
   border: 2px solid transparent;
   position: relative;
+  flex-shrink: 0;
 }
 
 .sub-date {
-  font-size: 12px;
+  font-size: 13px;
   color: @text-soft;
 }
 
-.info-lunar {
-  font-size: 13px;
-  color: @accent;
-  font-weight: 500;
-  padding: 4px 0;
-}
-
+/* 节日/节气 chips：类型着色，与左侧 cell-label 同色系 */
 .info-festivals {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
 
-.info-zodiac {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  margin-top: 4px;
-  padding-top: 8px;
+.fest-chip {
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-weight: 500;
+
+  &.kind-term {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+  }
+
+  &.kind-lunar {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+  }
+
+  &.kind-solar {
+    color: @danger;
+    background: fade(@danger, 10%);
+  }
+}
+
+/* 历法速览：农历 / 干支 / 生肖 / 星座 */
+.lunar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  padding-top: 10px;
   border-top: 1px dashed color-mix(in srgb, @accent 0.15%, transparent);
 }
 
-.zodiac-label {
+.lg-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lg-label {
+  font-size: 11px;
   color: @text-soft;
 }
 
-.zodiac-name {
-  color: @accent;
+.lg-value {
+  font-size: 13px;
+  color: @text;
   font-weight: 500;
+  .ellipsis();
 }
 
 .yiji {
@@ -783,34 +829,21 @@ const todayInfo = computed(() => {
   li {
     font-size: 11px;
     color: @text;
-    padding: 3px 0;
+    padding: 3px 9px;
+    border-radius: 999px;
   }
 }
 
-/* 完整农历 */
-.lunar-detail {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 8px;
-  font-size: 12px;
-  color: @text-soft;
-  padding: 4px 0;
-
-  .lunar-year {
-    color: @accent;
-    font-weight: 500;
-  }
-
-  .lunar-zodiac {
-    color: #f59e0b;
-  }
-
-  .lunar-month {
-    color: @text;
-  }
+/* 宜/忌词条底色：极浅类型色 */
+.yi .yj-list li {
+  background: rgba(16, 185, 129, 0.08);
 }
 
-/* 黄历（值神/星宿/彭祖）*/
+.ji .yj-list li {
+  background: fade(@danger, 7%);
+}
+
+/* 黄历（胎神/太岁/星宿/彭祖）*/
 .almanac {
   padding: 12px 16px;
   border-radius: @radius-card;
@@ -818,7 +851,7 @@ const todayInfo = computed(() => {
 
 .almanac-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
   gap: 10px;
   margin-bottom: 8px;
 }
