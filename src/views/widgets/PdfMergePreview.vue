@@ -451,7 +451,7 @@ onBeforeUnmount(() => {
   gap: 6px;
   overflow-y: auto;
   min-height: 0;
-  .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent));
+  .thin-scrollbar();
 
   li {
     display: flex;

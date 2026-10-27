@@ -817,7 +817,7 @@ const VIEW_MODES = [
   overflow: auto;
   min-width: 0;
   min-height: 0;
-  .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent));
+  .thin-scrollbar();
 
   & + .cd-col { border-left: 1px solid rgba(127, 127, 127, 0.16); }
 }
@@ -825,7 +825,7 @@ const VIEW_MODES = [
 .cd-col-full {
   flex: 1;
   overflow: auto;
-  .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent));
+  .thin-scrollbar();
 }
 
 .cd-unified,

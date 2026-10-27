@@ -877,8 +877,7 @@ export default {
     height: 1px;
   }
   /* 自定义滚动条：细而优化 */
-  scrollbar-color: color-mix(in srgb, @accent 0.4%, transparent) transparent;
-  .thin-scrollbar(linear-gradient(180deg, color-mix(in srgb, @accent 0.35%, transparent), rgba(139, 92, 246, 0.35)), 6px);
+  .thin-scrollbar(linear-gradient(180deg, color-mix(in srgb, @accent 35%, transparent), rgba(139, 92, 246, 0.35)), 6px);
 
   &::-webkit-scrollbar-track {
     background: transparent;
@@ -886,7 +885,7 @@ export default {
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, color-mix(in srgb, @accent 0.6%, transparent), rgba(139, 92, 246, 0.6));
+    background: linear-gradient(180deg, color-mix(in srgb, @accent 60%, transparent), rgba(139, 92, 246, 0.6));
   }
 }
 

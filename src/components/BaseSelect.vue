@@ -254,7 +254,7 @@ useClickOutside(
     max-height: 210px;
     overflow-y: auto;
     padding-right: 2px;
-    .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent));
+    .thin-scrollbar();
   }
 
   &.bs-list {
@@ -263,7 +263,7 @@ useClickOutside(
     gap: 2px;
     max-height: 208px;
     overflow-y: auto;
-    .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent));
+    .thin-scrollbar();
   }
 }
 

@@ -231,7 +231,7 @@ function minimize() {
   border-radius: @radius-card;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid color-mix(in srgb, @accent 0.12%, transparent);
-  .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent));
+  .thin-scrollbar();
 }
 
 /* 底部按钮 */

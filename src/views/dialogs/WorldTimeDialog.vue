@@ -235,7 +235,7 @@ function close() {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  .thin-scrollbar(color-mix(in srgb, @accent 30%, transparent));
+  .thin-scrollbar();
 }
 
 /* 本地时间横幅 */

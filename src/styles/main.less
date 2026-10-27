@@ -21,6 +21,9 @@
   --radius-card: 16px;
   --radius-large: 22px;
   --transition: 0.2s ease;
+  /* 滚动条 thumb：跟随主题色，主题切换/深色翻转自动带走 */
+  --scrollbar-thumb: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--color-accent) 50%, transparent);
 }
 
 /* ============================================================
@@ -37,6 +40,9 @@
   --glass-bg: rgba(17, 24, 39, 0.82);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  /* 深色下 thumb 提高不透明度，保证深底可见 */
+  --scrollbar-thumb: color-mix(in srgb, var(--color-accent) 45%, transparent);
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--color-accent) 68%, transparent);
 }
 
 /* 深色覆盖统一用 html[data-theme='dark'] 开头（优先级 (0,2,1)）：
@@ -45,15 +51,6 @@
  * （如确认弹窗 .btn-cancel 在深色下仍显示浅灰）。
  */
 html[data-theme='dark'] {
-  /* 深色滚动条 */
-  ::-webkit-scrollbar-thumb {
-    background: rgba(148, 163, 184, 0.3);
-
-    &:hover {
-      background: rgba(148, 163, 184, 0.5);
-    }
-  }
-
   /* 左侧栏 + 右上按钮：深色玻璃（对齐 search-bar：默认 0.55，悬浮 0.9） */
   .sidebar {
     background: rgba(17, 24, 39, 0.55);
@@ -187,23 +184,32 @@ body {
   box-shadow: var(--glass-shadow);
 }
 
-/* 滚动条 */
+/* 全局滚动条：细胶囊、跟随主题色变量（深色由变量翻转自动覆盖） */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(99, 102, 241, 0.25);
-  border-radius: 4px;
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
 
   &:hover {
-    background: rgba(99, 102, 241, 0.45);
+    background: var(--scrollbar-thumb-hover);
   }
 }
 
-::-webkit-scrollbar-track {
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Firefox 没有 ::-webkit-scrollbar：标准属性补齐（探测式隔离，避免 Chromium 命中后禁用上面的定制） */
+@supports not selector(::-webkit-scrollbar) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
 }
 
 /* 文本截断工具 */

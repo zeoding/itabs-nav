@@ -438,7 +438,7 @@ watch(
   min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
-  .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent));
+  .thin-scrollbar();
 }
 .city-row {
   display: flex;

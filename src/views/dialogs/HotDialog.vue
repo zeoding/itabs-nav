@@ -227,9 +227,8 @@ watch(
 .hot-list {
   flex: 1;
   overflow-y: auto;
-  scrollbar-color: color-mix(in srgb, @accent 0.3%, transparent) transparent;
   padding-right: 4px;
-  .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent), 5px);
+  .thin-scrollbar(@width: 5px);
 
   &::-webkit-scrollbar-track {
     background: transparent;

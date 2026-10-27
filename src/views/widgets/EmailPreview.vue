@@ -493,7 +493,7 @@ onBeforeUnmount(stopPolling)
   min-height: 0;
   overflow-y: auto;
   padding: 2px;  /* 卡片阴影不被滚动条裁剪 */
-  .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent));
+  .thin-scrollbar();
 }
 
 .msg-item {

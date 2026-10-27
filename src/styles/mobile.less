@@ -1310,10 +1310,13 @@
    ============================================================ */
 
 @media (max-width: 900px) {
-  /* weather-body 滚动条 */
+  /* weather-body 滚动条（颜色跟全局主题变量，明暗自动切换）
+     标准属性包 @supports not：Chromium 121+ 设置后 webkit 定制失效 */
   .weather-body {
-    scrollbar-width: thin !important;
-    scrollbar-color: rgba(99, 102, 241, 0.3) transparent !important;
+    @supports not selector(::-webkit-scrollbar) {
+      scrollbar-width: thin !important;
+      scrollbar-color: var(--scrollbar-thumb) transparent !important;
+    }
 
     &::-webkit-scrollbar {
       width: 4px !important;
@@ -1326,18 +1329,11 @@
     }
 
     &::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg,
-        rgba(99, 102, 241, 0.35),
-        rgba(139, 92, 246, 0.35)) !important;
-      border-radius: 2px !important;
-      border: 1px solid transparent !important;
-      background-clip: padding-box !important;
+      background: var(--scrollbar-thumb) !important;
+      border-radius: 999px !important;
 
       &:hover {
-        background: linear-gradient(180deg,
-          rgba(99, 102, 241, 0.6),
-          rgba(139, 92, 246, 0.6)) !important;
-        background-clip: padding-box !important;
+        background: var(--scrollbar-thumb-hover) !important;
       }
     }
 
@@ -1354,17 +1350,17 @@
   }
 
   .weather-body::-webkit-scrollbar-thumb {
-    background: rgba(99, 102, 241, 0.25) !important;
-    border: 1px solid transparent !important;
-    background-clip: padding-box !important;
+    background: var(--scrollbar-thumb) !important;
   }
 }
 
 /* 移动端全局滚动条（内容区、列表等） */
 @media (max-width: 900px) {
   * {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+    @supports not selector(::-webkit-scrollbar) {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
 
     &::-webkit-scrollbar {
       width: 5px;
@@ -1376,11 +1372,11 @@
     }
 
     &::-webkit-scrollbar-thumb {
-      background: rgba(99, 102, 241, 0.3);
-      border-radius: 3px;
+      background: var(--scrollbar-thumb);
+      border-radius: 999px;
 
       &:hover {
-        background: rgba(99, 102, 241, 0.5);
+        background: var(--scrollbar-thumb-hover);
       }
     }
   }

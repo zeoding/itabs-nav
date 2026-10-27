@@ -774,7 +774,7 @@ function addWidget(widget) {
   gap: 6px;
   overflow-y: auto;
   padding: 2px;
-  .thin-scrollbar(color-mix(in srgb, @accent 0.3%, transparent));
+  .thin-scrollbar();
 }
 
 .pop-empty {

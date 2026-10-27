@@ -86,15 +86,29 @@
 }
 
 // ---- 细滚动条 ----
-.thin-scrollbar(@thumb, @width: 4px) {
-  scrollbar-width: thin;
+// thumb 默认接全局主题变量（浅 30% / 深 45% 自动跟随），特殊场景可覆盖传参
+// 标准属性必须包在 @supports not 内：Chromium 121+ 一旦设置 scrollbar-width/color
+// 会禁用同元素的 ::-webkit-scrollbar 定制，导致主题色丢失（原生灰条）
+.thin-scrollbar(@thumb: var(--scrollbar-thumb), @width: 4px) {
+  @supports not selector(::-webkit-scrollbar) {
+    scrollbar-width: thin;
+    scrollbar-color: @thumb transparent;
+  }
 
   &::-webkit-scrollbar {
     width: @width;
   }
 
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   &::-webkit-scrollbar-thumb {
     background: @thumb;
-    border-radius: 2px;
+    border-radius: 999px;
   }
 }
