@@ -244,4 +244,6 @@ function onFooterClick() {
     cursor: not-allowed;
   }
 }
+
+/* 移动端样式见 src/styles/mobile.less（≤900px 不展示：底部 Tab Bar 会遮挡贴底页脚） */
 </style>
