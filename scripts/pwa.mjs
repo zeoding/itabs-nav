@@ -68,6 +68,17 @@ export function pwaPlugin() {
             }
             icons.push(icon)
           }
+          // 根级运行时图片（如壁纸兜底图）不进 bundle，须显式纳入预缓存才能离线可用
+          let rootEntries
+          try { rootEntries = await readdir(publicDir, { withFileTypes: true }) } catch (error) {
+            if (error.code !== 'ENOENT') throw error
+            rootEntries = []
+          }
+          for (const entry of rootEntries.sort((a, b) => a.name.localeCompare(b.name))) {
+            if (!entry.isFile() || !/\.(?:jpe?g|png|webp|avif|gif)$/i.test(entry.name)) continue
+            const name = entry.name
+            if (!files.has(name)) files.set(name, await readFile(path.join(publicDir, name)))
+          }
         }
         const manifest = `${JSON.stringify({
           id: './', name: 'itabs导航页', short_name: 'itabs', lang: 'zh-CN',

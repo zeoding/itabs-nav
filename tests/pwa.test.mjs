@@ -19,6 +19,8 @@ async function fixture(t) {
   png.writeUInt32BE(192, 20)
   await writeFile(path.join(publicDir, 'icons', 'app icon.png'), png)
   await writeFile(path.join(publicDir, 'icons', 'ignored.svg'), '<svg/>')
+  // 根级运行时图片应进预缓存（真实项目里是壁纸兜底图）
+  await writeFile(path.join(publicDir, 'wallhaven-yqkl97.jpg'), 'fallback-jpeg-bytes')
   return { root, publicDir, base: './', build: {} }
 }
 
@@ -120,6 +122,7 @@ test('build-only plugin emits relative manifest, complete deterministic precache
   assert.deepEqual(first.metadata.precache, [
     './css/app.css', './favicon.ico', './fonts/a.woff2', './icons/app%20icon.png',
     './index.html', './js/app.js', './js/lazy.js', './manifest.webmanifest', './nested/page.html',
+    './wallhaven-yqkl97.jpg',
   ])
   assert.match(first.metadata.version, /^[a-f0-9]{64}$/)
   assert.equal(first.source.includes('__PWA_BUILD__'), false)
@@ -131,6 +134,9 @@ test('build-only plugin emits relative manifest, complete deterministic precache
     assert.notEqual((await build(config, changed)).metadata.version, first.metadata.version, key)
   }
   await writeFile(path.join(config.publicDir, 'favicon.ico'), 'new favicon')
+  assert.notEqual((await build(config)).metadata.version, first.metadata.version)
+  // 根级图片内容变化也要反映到构建版本
+  await writeFile(path.join(config.publicDir, 'wallhaven-yqkl97.jpg'), 'changed fallback bytes')
   assert.notEqual((await build(config)).metadata.version, first.metadata.version)
 })
 
