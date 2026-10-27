@@ -94,9 +94,9 @@ export const TOOLS = [
   },
   {
     kind: 'pdf-merge',
-    name: 'PDF合并',
+    name: 'PDF工具',
     icon: '📄',
-    desc: '多份 PDF 拖入排序，按顺序合并为一个文件，纯本地处理不上传',
+    desc: '多份 PDF 合并、按页码范围拆分、添加文字水印，本地处理可预览',
     titleKey: 'widgets.pdfMerge',
     categoryKey: 'siteEditor.widgetCats.tool',
     category: 'tool',

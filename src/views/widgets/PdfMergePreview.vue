@@ -1,281 +1,193 @@
 <script setup>
 /**
- * PDF 合并小组件
+ * PDF 工具（合并 / 拆分 / 水印）壳组件。
  *
- * 功能：
- *  - 点击选择 / 拖拽（可多文件）导入 PDF，列表内上移 / 下移调整合并顺序
- *  - 按列表顺序合并为一个 PDF 并触发下载，全程浏览器本地完成，不上传
- *
- * 实现说明：
- *  - pdf-lib 随 vite pdf-libs 分组独立成块，且在本组件内首次点击「合并」才动态
- *    import：打开面板不下载 ~500KB 依赖，只有真正合并时才拉取（构建进 PWA 预缓存）
- *  - files 用 shallowRef + 整组替换：File/Blob 不被深度响应化代理（Proxy 包装的
- *    File 传给第三方库有兼容风险），排序/增删都生成新数组触发更新
- *  - 拖拽多文件与 useFileDrop 单文件语义不同（那里只取 files[0]），这里按同一
- *    dragDepth 计数思路在组件内实现，接受 dataTransfer 里的全部 PDF
- *  - ignoreEncryption: true 兼容仅设了所有者权限的 PDF；真正损坏的文件会在
- *    load/copyPages 抛错，按文件名提示并中止本次合并
+ * 结构：模式 Tab + 三个功能面板 + 共享预览面板。
+ * 预览用 blob URL + iframe 交给浏览器原生 PDF 查看器，零依赖、可缩放翻页；
+ * 面板生成文件后 emit('preview', { blob, name })，壳统一创建/回收对象 URL
+ * （打开新预览与组件卸载时 revoke，避免内存泄漏）。
+ * 三个面板只带结构，共享样式全部集中在下方 :deep 区，避免三份拷贝。
  */
-import { computed, ref, shallowRef } from 'vue'
-import { useMessage } from '@/composables/useMessage'
+import { computed, onBeforeUnmount, ref, shallowRef } from 'vue'
 import { $t } from '@/composables/useI18n'
 import { downloadBlob } from '@/utils/download'
-import {
-  RiArrowDownLine,
-  RiArrowUpLine,
-  RiCloseLine,
-  RiDownloadLine,
-  RiFilePdf2Line,
-  RiFilePdfLine,
-  RiLoader4Line,
-} from '@remixicon/vue'
+import { RiCloseLine, RiDownloadLine, RiFilePdf2Line } from '@remixicon/vue'
+import PdfMergePane from './pdf/PdfMergePane.vue'
+import PdfSplitPane from './pdf/PdfSplitPane.vue'
+import PdfWatermarkPane from './pdf/PdfWatermarkPane.vue'
 
-const message = useMessage()
+const modes = [
+  { key: 'merge', component: PdfMergePane },
+  { key: 'split', component: PdfSplitPane },
+  { key: 'watermark', component: PdfWatermarkPane },
+]
 
-/** 文件列表：{ id, file, name, size }；shallowRef 整组替换驱动视图 */
-const files = shallowRef([])
-const inputRef = ref(null)
-const merging = ref(false)
-const isDragging = ref(false)
-let uid = 0
-let dragDepth = 0
+const mode = ref('merge')
+const activeComp = computed(() => modes.find((m) => m.key === mode.value)?.component)
 
-const canMerge = computed(() => files.value.length >= 2)
-const totalSize = computed(() => files.value.reduce((sum, item) => sum + item.size, 0))
+const preview = shallowRef(null) // { url, name, blob }
 
-function formatSize(bytes) {
-  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`
-  return `${bytes} B`
+function openPreview({ blob, name }) {
+  if (preview.value) URL.revokeObjectURL(preview.value.url)
+  preview.value = { url: URL.createObjectURL(blob), name, blob }
 }
 
-function isPdf(file) {
-  return file.type === 'application/pdf' || /\.pdf$/i.test(file.name)
+function closePreview() {
+  if (!preview.value) return
+  URL.revokeObjectURL(preview.value.url)
+  preview.value = null
 }
 
-/** 追加文件：过滤非 PDF、按 名称+大小 去重，追加到列表末尾 */
-function addFiles(list) {
-  const next = [...files.value]
-  const rejected = []
-  for (const file of list) {
-    if (!isPdf(file)) {
-      rejected.push(file.name)
-      continue
-    }
-    if (next.some((item) => item.name === file.name && item.size === file.size)) continue
-    next.push({ id: ++uid, file, name: file.name, size: file.size })
-  }
-  if (rejected.length) {
-    message.warning($t('pdfMerge.invalidType', { name: rejected.join('、') }))
-  }
-  files.value = next
+function downloadPreview() {
+  if (!preview.value) return
+  downloadBlob(preview.value.blob, preview.value.name)
 }
 
-function pick() {
-  inputRef.value?.click()
-}
-
-function onPick(event) {
-  addFiles([...event.target.files])
-  event.target.value = '' // 允许重复选择同一文件
-}
-
-/* ---- 拖拽导入（多文件）：dragenter/leave 因子元素冒泡成对触发，depth 计数抵消 ---- */
-function onDragEnter(event) {
-  if (!event.dataTransfer?.types?.includes('Files')) return
-  dragDepth++
-  isDragging.value = true
-}
-
-function onDragLeave() {
-  dragDepth = Math.max(0, dragDepth - 1)
-  if (dragDepth === 0) isDragging.value = false
-}
-
-function onDrop(event) {
-  event.preventDefault()
-  dragDepth = 0
-  isDragging.value = false
-  const list = [...(event.dataTransfer?.files || [])]
-  if (list.length) addFiles(list)
-}
-
-/** 相邻交换排序（dir: -1 上移 / 1 下移） */
-function move(index, dir) {
-  const target = index + dir
-  const next = [...files.value]
-  if (target < 0 || target >= next.length) return
-  ;[next[index], next[target]] = [next[target], next[index]]
-  files.value = next
-}
-
-function removeAt(index) {
-  files.value = files.value.filter((_, i) => i !== index)
-}
-
-function clearAll() {
-  files.value = []
-}
-
-/** 默认输出名（不含扩展名）：pdf-merge-YYYYMMDD-HHmmss */
-function defaultBase() {
-  const d = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  return `pdf-merge-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
-}
-
-/** 输出文件名（不含扩展名），界面可编辑；.pdf 后缀固定补上 */
-const baseName = ref(defaultBase())
-
-/** 清洗用户输入：去掉 Windows 非法字符、手滑多打的 .pdf 后缀和结尾空白/点；空则回退默认名。
- *  顺序敏感：先摘 .pdf（连同其后尾巴），再扫结尾空白/点——反序会把「file.pdf.」洗成「file.pdf.pdf」 */
-function sanitizeName(raw) {
-  const cleaned = raw
-    .replace(/[\\/:*?"<>|]/g, '')
-    .replace(/\.pdf[\s.]*$/i, '')
-    .replace(/[\s.]+$/g, '')
-    .trim()
-  return cleaned || defaultBase()
-}
-
-async function merge() {
-  if (!canMerge.value || merging.value) return
-  const list = [...files.value] // 合并期间的新增/删除不影响本次快照
-  merging.value = true
-  try {
-    const { PDFDocument } = await import('pdf-lib')
-    const out = await PDFDocument.create()
-    for (const item of list) {
-      try {
-        const src = await PDFDocument.load(await item.file.arrayBuffer(), { ignoreEncryption: true })
-        const pages = await out.copyPages(src, src.getPageIndices())
-        pages.forEach((page) => out.addPage(page))
-      } catch {
-        throw new Error($t('pdfMerge.fileFailed', { name: item.name }))
-      }
-    }
-    const bytes = await out.save()
-    const base = sanitizeName(baseName.value)
-    baseName.value = base // 清洗结果回填输入框，实际文件名对用户可见
-    const name = `${base}.pdf`
-    downloadBlob(new Blob([bytes], { type: 'application/pdf' }), name)
-    message.success($t('pdfMerge.done', { name }))
-  } catch (error) {
-    message.error(error?.message || $t('pdfMerge.failed'))
-  } finally {
-    merging.value = false
-  }
-}
+onBeforeUnmount(closePreview)
 </script>
 
 <template>
-  <div class="pdf-merge">
-    <!-- 导入区：点击 / 拖拽，拖入时高亮 -->
-    <div
-      class="dropzone"
-      :class="{ dragging: isDragging }"
-      role="button"
-      tabindex="0"
-      :aria-label="$t('pdfMerge.addHint')"
-      @click="pick"
-      @keydown.enter.prevent="pick"
-      @keydown.space.prevent="pick"
-      @dragenter="onDragEnter"
-      @dragleave="onDragLeave"
-      @dragover.prevent
-      @drop="onDrop"
-    >
-      <RiFilePdf2Line size="30" aria-hidden="true" />
-      <p class="dz-main">{{ $t('pdfMerge.addHint') }}</p>
-      <span class="dz-hint">{{ $t('pdfMerge.pick') }}</span>
-      <input
-        ref="inputRef"
-        type="file"
-        class="dz-input"
-        accept=".pdf,application/pdf"
-        multiple
-        @change="onPick"
-      />
+  <div class="pdf-tools">
+    <!-- 模式切换 -->
+    <div class="mode-tabs" role="tablist">
+      <button
+        v-for="m in modes"
+        :key="m.key"
+        type="button"
+        role="tab"
+        class="tab-btn"
+        :class="{ active: mode === m.key }"
+        :aria-selected="mode === m.key"
+        @click="mode = m.key"
+      >
+        {{ $t(`pdfMerge.tab_${m.key}`) }}
+      </button>
     </div>
 
-    <!-- 文件列表（合并顺序即列表顺序） -->
-    <ul v-if="files.length" class="file-list">
-      <li v-for="(item, index) in files" :key="item.id">
-        <span class="f-index">{{ index + 1 }}</span>
-        <RiFilePdfLine size="15" class="f-icon" aria-hidden="true" />
-        <span class="f-name" :title="item.name">{{ item.name }}</span>
-        <span class="f-size">{{ formatSize(item.size) }}</span>
-        <div class="f-ops">
-          <button
-            type="button"
-            v-tip="$t('pdfMerge.moveUp')"
-            :aria-label="$t('pdfMerge.moveUp')"
-            :disabled="index === 0 || merging"
-            @click="move(index, -1)"
-          >
-            <RiArrowUpLine size="14" aria-hidden="true" />
+    <component :is="activeComp" @preview="openPreview" />
+
+    <!-- 生成结果预览：浏览器原生 PDF 查看器 -->
+    <div v-if="preview" class="preview-panel">
+      <header class="pv-head">
+        <RiFilePdf2Line size="14" class="pv-icon" aria-hidden="true" />
+        <span class="pv-name" :title="preview.name">{{ preview.name }}</span>
+        <div class="pv-ops">
+          <button type="button" class="pv-btn" @click="downloadPreview">
+            <RiDownloadLine size="14" aria-hidden="true" />
+            {{ $t('pdfMerge.download') }}
           </button>
-          <button
-            type="button"
-            v-tip="$t('pdfMerge.moveDown')"
-            :aria-label="$t('pdfMerge.moveDown')"
-            :disabled="index === files.length - 1 || merging"
-            @click="move(index, 1)"
-          >
-            <RiArrowDownLine size="14" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            v-tip="$t('common.delete')"
-            :aria-label="$t('common.delete')"
-            :disabled="merging"
-            @click="removeAt(index)"
-          >
+          <button type="button" class="pv-btn" :aria-label="$t('common.close')" @click="closePreview">
             <RiCloseLine size="14" aria-hidden="true" />
           </button>
         </div>
-      </li>
-    </ul>
-
-    <p v-else class="empty-tip">{{ $t('pdfMerge.empty') }}</p>
-
-    <!-- 输出文件名：可编辑，.pdf 后缀固定补上 -->
-    <div class="name-row">
-      <label class="name-label" for="pdf-merge-name">{{ $t('pdfMerge.outputName') }}</label>
-      <div class="name-field">
-        <input
-          id="pdf-merge-name"
-          v-model="baseName"
-          class="name-input"
-          type="text"
-          :placeholder="$t('pdfMerge.namePlaceholder')"
-          :disabled="merging"
-          maxlength="120"
-          @keydown.enter="merge"
-        />
-        <span class="name-ext">.pdf</span>
-      </div>
-    </div>
-
-    <!-- 统计 + 合并动作 -->
-    <div class="merge-bar">
-      <span v-if="files.length" class="bar-meta">
-        {{ $t('pdfMerge.count', { n: files.length }) }} · {{ formatSize(totalSize) }}
-        <button class="link-btn" type="button" :disabled="merging" @click="clearAll">
-          {{ $t('pdfMerge.clear') }}
-        </button>
-      </span>
-      <button class="merge-btn" type="button" :disabled="!canMerge || merging" @click="merge">
-        <RiLoader4Line v-if="merging" size="14" class="spin" aria-hidden="true" />
-        <RiDownloadLine v-else size="14" aria-hidden="true" />
-        {{ merging ? $t('pdfMerge.merging') : $t('pdfMerge.merge') }}
-      </button>
+      </header>
+      <iframe class="pv-frame" :src="preview.url" :title="preview.name" />
     </div>
   </div>
 </template>
 
 <style scoped lang="less">
-.pdf-merge {
+.pdf-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* ===== 模式 Tab ===== */
+.mode-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: @radius-pill;
+  background: color-mix(in srgb, @accent 0.08%, transparent);
+  align-self: flex-start;
+}
+
+.tab-btn {
+  padding: 5px 16px;
+  border: none;
+  border-radius: @radius-pill;
+  background: none;
+  font-size: 12.5px;
+  color: @text-soft;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover:not(.active) {
+    color: @text;
+  }
+
+  &.active {
+    color: #fff;
+    background: @accent-gradient;
+    font-weight: 500;
+  }
+}
+
+/* ===== 预览面板 ===== */
+.preview-panel {
+  border: 1px solid color-mix(in srgb, @accent 0.15%, transparent);
+  border-radius: @radius-card;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.pv-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 10px;
+  border-bottom: 1px solid color-mix(in srgb, @accent 0.1%, transparent);
+}
+
+.pv-icon {
+  flex: 0 0 auto;
+  color: @accent;
+}
+
+.pv-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: @text;
+  .ellipsis();
+}
+
+.pv-ops {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+}
+
+.pv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: @radius-card;
+  background: none;
+  font-size: 12px;
+  color: @accent;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: @accent-soft;
+  }
+}
+
+.pv-frame {
+  display: block;
+  width: 100%;
+  height: 340px;
+  border: none;
+  background: #525659; // 与 Chrome 内置 PDF 查看器底色一致
+}
+
+/* ===== 三个功能面板的共享样式（pane 内无 scoped 样式，全部在此 :deep 提供） ===== */
+.pdf-tools :deep(.pane) {
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -283,7 +195,7 @@ async function merge() {
 }
 
 /* 导入区 */
-.dropzone {
+:deep(.dropzone) {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -310,24 +222,236 @@ async function merge() {
   }
 }
 
-.dz-main {
+:deep(.dz-main) {
   margin: 6px 0 0;
   font-size: 13px;
   font-weight: 500;
   color: @text;
 }
 
-.dz-hint {
+:deep(.dz-hint) {
   font-size: 12px;
   color: @text-soft;
 }
 
-.dz-input {
+:deep(.dz-input) {
   display: none;
 }
 
-/* 文件列表 */
-.file-list {
+/* 已选文件信息卡（拆分/水印） */
+:deep(.file-card) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: @radius-card;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid color-mix(in srgb, @accent 0.12%, transparent);
+}
+
+:deep(.fc-icon) {
+  flex: 0 0 auto;
+  color: @text-soft;
+}
+
+:deep(.fc-name) {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  color: @text;
+  .ellipsis();
+}
+
+:deep(.fc-meta) {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: @text-soft;
+  font-variant-numeric: tabular-nums;
+}
+
+:deep(.fc-btn) {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border: none;
+  border-radius: @radius-pill;
+  font-size: 11.5px;
+  color: @accent;
+  background: @accent-soft;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+
+  &:hover:not(:disabled) {
+    filter: brightness(0.96);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+/* 表单行 */
+:deep(.field-row) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+:deep(.field-label) {
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: @text-soft;
+}
+
+:deep(.field-input) {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, @accent 0.12%, transparent);
+  border-radius: @radius-card;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 12.5px;
+  color: @text;
+  outline: none;
+  transition: border-color 0.15s ease;
+
+  &:focus {
+    border-color: @accent;
+  }
+
+  &::placeholder {
+    color: @text-soft;
+    opacity: 0.7;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+:deep(.hint) {
+  margin: -6px 0 0;
+  font-size: 11.5px;
+  color: @text-soft;
+}
+
+:deep(.warn) {
+  margin: -6px 0 0;
+  font-size: 11.5px;
+  color: #b45309;
+}
+
+/* 拆分范围 chips */
+:deep(.chips) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+:deep(.chip) {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 4px 3px 10px;
+  border-radius: @radius-pill;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid color-mix(in srgb, @accent 0.12%, transparent);
+}
+
+:deep(.chip-text) {
+  font-size: 11.5px;
+  color: @text;
+  font-variant-numeric: tabular-nums;
+}
+
+:deep(.chip-btn) {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: @radius-circle;
+  color: @accent;
+  background: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: @accent-soft;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+}
+
+/* 水印参数 */
+:deep(.wm-opts) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+:deep(.opt) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: @text-soft;
+
+  input[type='number'] {
+    width: 64px;
+    padding: 4px 6px;
+    border: 1px solid color-mix(in srgb, @accent 0.12%, transparent);
+    border-radius: @radius-card;
+    background: rgba(255, 255, 255, 0.55);
+    font-size: 12px;
+    color: @text;
+    outline: none;
+
+    &:focus {
+      border-color: @accent;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
+
+  input[type='range'] {
+    accent-color: @accent;
+  }
+
+  select {
+    padding: 4px 6px;
+    border: 1px solid color-mix(in srgb, @accent 0.12%, transparent);
+    border-radius: @radius-card;
+    background: rgba(255, 255, 255, 0.55);
+    font-size: 12px;
+    color: @text;
+    outline: none;
+
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
+}
+
+:deep(.opt-value) {
+  font-style: normal;
+  min-width: 34px;
+  color: @text;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 合并文件列表 */
+:deep(.file-list) {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -349,7 +473,7 @@ async function merge() {
   }
 }
 
-.f-index {
+:deep(.f-index) {
   flex: 0 0 auto;
   width: 20px;
   height: 20px;
@@ -364,12 +488,12 @@ async function merge() {
   font-variant-numeric: tabular-nums;
 }
 
-.f-icon {
+:deep(.f-icon) {
   flex: 0 0 auto;
   color: @text-soft;
 }
 
-.f-name {
+:deep(.f-name) {
   flex: 1;
   min-width: 0;
   font-size: 12.5px;
@@ -377,14 +501,14 @@ async function merge() {
   .ellipsis();
 }
 
-.f-size {
+:deep(.f-size) {
   flex: 0 0 auto;
   font-size: 11px;
   color: @text-soft;
   font-variant-numeric: tabular-nums;
 }
 
-.f-ops {
+:deep(.f-ops) {
   flex: 0 0 auto;
   display: flex;
   gap: 2px;
@@ -414,7 +538,7 @@ async function merge() {
   }
 }
 
-.empty-tip {
+:deep(.empty-tip) {
   margin: 0;
   padding: 10px 2px;
   font-size: 12px;
@@ -422,20 +546,20 @@ async function merge() {
   text-align: center;
 }
 
-/* 输出文件名 */
-.name-row {
+/* 合并输出文件名 */
+:deep(.name-row) {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.name-label {
+:deep(.name-label) {
   flex: 0 0 auto;
   font-size: 12px;
   color: @text-soft;
 }
 
-.name-field {
+:deep(.name-field) {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -451,7 +575,7 @@ async function merge() {
   }
 }
 
-.name-input {
+:deep(.name-input) {
   flex: 1;
   min-width: 0;
   padding: 7px 0;
@@ -472,15 +596,15 @@ async function merge() {
   }
 }
 
-.name-ext {
+:deep(.name-ext) {
   flex: 0 0 auto;
   font-size: 12.5px;
   color: @text-soft;
   user-select: none;
 }
 
-/* 统计 + 合并按钮 */
-.merge-bar {
+/* 统计行 + 动作按钮 */
+:deep(.merge-bar) {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -488,13 +612,13 @@ async function merge() {
   flex-wrap: wrap;
 }
 
-.bar-meta {
+:deep(.bar-meta) {
   font-size: 12px;
   color: @text-soft;
   font-variant-numeric: tabular-nums;
 }
 
-.link-btn {
+:deep(.link-btn) {
   margin-left: 8px;
   padding: 0;
   border: none;
@@ -513,7 +637,15 @@ async function merge() {
   }
 }
 
-.merge-btn {
+:deep(.action-bar) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+:deep(.primary-btn) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -540,7 +672,27 @@ async function merge() {
   }
 
   .spin {
-    animation: spin360 0.9s linear infinite;
+    animation: spin360 0.9s linear infinite; // keyframes 定义在 src/styles/main.less
+  }
+}
+
+:deep(.ghost-btn) {
+  padding: 7px 14px;
+  border: 1px solid color-mix(in srgb, @accent 0.25%, transparent);
+  border-radius: @radius-pill;
+  font-size: 12.5px;
+  color: @accent;
+  background: none;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: @accent-soft;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
   }
 }
 </style>
