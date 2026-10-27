@@ -10,7 +10,7 @@
 
 ## 📁 仓库说明
 
-当前仓库即 `itabs-nav` 本体（v0.2.0+），所有新功能开发与维护均在此目录下进行。
+当前仓库即 `itabs-nav` 本体（v0.3.0+），所有新功能开发与维护均在此目录下进行。
 
 下文所有说明均针对本目录。
 
@@ -24,6 +24,7 @@
 - 📌 **站点 CRUD**：添加 / 编辑 / 删除 / 调整大小（6 种尺寸：1x1 / 1x2 / 2x1 / 2x2 / 4x2）
 - 🖱️ **拖拽排序**：HTML5 DnD（站点卡片、待办、面板均支持）
 - 🖱️ **右键菜单**：站点卡片右键编辑 / 删除 / 调整大小；添加卡片右键进入「编辑主页」模式
+- 🌐 **网址导航**：添加站点弹窗内按分类浏览常用网站，支持搜索与目标面板选择，点击即添加
 - 🎨 **玻璃拟态 UI**：Less 变量 + `backdrop-filter` 模糊
 
 ### 小组件
@@ -32,22 +33,22 @@
 - 🔥 **热搜榜**（百度 / 微博 / 知乎 / 抖音 / B 站；uapis 主源 + imsyy 备源 fallback，每日缓存）
 - ✅ **待办**（未完成 / 已完成 / 回收站 + 批量操作 + 拖拽排序）
 - 📅 **日历**（含农历/宜忌/节日/黄历）
+- 🕰️ **世界时钟**：点击时钟卡片查看全球多时区当前时间（时差与跨天标注）
 - 💬 **每日一言**（uapis 随机一言，每日缓存，支持复制/刷新）
 - ❄️ **飘雪特效**（右上快捷区开关，状态持久化）
 - 🧰 **工具卡片**：站点 `kind` 扩展，点击打开预览弹窗（最小化后由底部任务栏承接）
   - ✂️ 文本分割（逗号/分号/斜杠/换行/自定义分隔，去重/计数/分组，CSV 导出）
   - 📫 免费邮箱 / 🖼️ 壁纸库（Wallhaven 搜索，sfw）
   - 📊 **周报统计**：汇总页签含汇总表/明细表，数据页签为原始导入数据，支持 Excel 导出
-  - 🌐 **网址导航**：添加站点弹窗内按分类浏览常用网站，支持搜索与目标面板选择，点击即添加
   - 📱 **二维码生成/解码**：生成网址/文本二维码，支持扫描解码
   - 🔀 **内容对比**：两段文本/代码逐行 diff，高亮新增/删除/修改（词级细分），支持并排/统一/仅差异三视图、忽略大小写与空白、折叠相同行、导入文件、导出 diff
-  - 🔐 **加密解码**：Base64 编码/解码，Hex 编码/解码，MD5 加密
-  - ⏰ **世界时钟**：显示多个时区的当前时间
+  - 🔐 **编码解码**：Base64 / URL / Hex / 哈希 / AES / RSA 等编码与加解密
+  - 📄 **PDF工具**：多份 PDF 合并、按页码范围拆分、添加文字水印；pdf-lib 纯本地处理，结果弹窗预览、输出文件名可编辑
 
 ### 个性化
 - 🎨 **主题色**：颜色选择器 + 6 套预设
 - 🌙 **深浅色**：浅色 / 深色 / 跟随系统
-- 🖼️ **壁纸**：纯色 / 渐变 / 自定义 URL / 随机图（可定时刷新）
+- 🖼️ **壁纸**：纯色 / 渐变 / 自定义 URL / 随机图（可定时刷新）；自定义与随机壁纸加载失败时自动兜底本地壁纸（`wallhaven-yqkl97.jpg`，断网恢复自动切回），兜底图已进 SW 预缓存离线可用
 - 🌐 **国际化**：`zh-CN` / `en`，全组件覆盖
 - 📐 **网格列数**：自适应 / 4 / 5 / 6 列
 - 🔍 **极简模式**：隐藏侧栏 + 小组件/站点区，只保留搜索框并下移 `18vh`
@@ -134,7 +135,7 @@ zip 文件**不含** dist 目录层，解压后直接是 `index.html` + `favicon
 生产构建自动生成 Web App Manifest 和 Service Worker，不增加第三方依赖；开发模式不注册 Service Worker，避免影响热更新。
 
 - **安装**：HTTPS 部署或通过 `npm run preview` 在 localhost 预览。支持安装提示的浏览器可在「设置 → 关于」点击「安装应用」，也可使用浏览器菜单；iPhone / iPad 在 Safari 的「共享 → 添加到主屏幕」安装。
-- **离线**：首次访问保持联网，关于页显示「离线资源已就绪」后再断网。构建产物中的 JS、CSS、懒加载工具和应用图标全部预缓存；站点与设置仍由 IndexedDB 保存。天气、热搜、壁纸、外部网站及在线 API 不保证离线可用。
+- **离线**：首次访问保持联网，关于页显示「离线资源已就绪」后再断网。构建产物中的 JS、CSS、懒加载工具、应用图标和 public 根级图片（如壁纸兜底图）全部预缓存；站点与设置仍由 IndexedDB 保存。天气、热搜、壁纸、外部网站及在线 API 不保证离线可用。
 - **更新**：新版本后台下载完整后等待确认，顶部提示「立即刷新」会先激活新缓存再刷新，不会自动中断当前操作。「稍后」可延后本页更新；关闭全部旧页面后浏览器也可自然激活新版本。更新不会清除 IndexedDB 数据。
 - **部署**：支持域名根目录或子目录（例如 `/nav/`，入口请带尾斜杠）。将完整 `dist/` 一起发布，服务器需正确提供 `.webmanifest`（`application/manifest+json`）和 JS MIME 类型。建议 `sw.js`、`index.html`、`version.json` 使用 `Cache-Control: no-cache`，hash 静态资源使用长缓存；发布时短期保留上一版 hash 资源，避免仍打开的旧页面按需加载失败。
 - **边界**：非 HTTPS（localhost 除外）与 `file://` 不启用 PWA。Service Worker 只处理同源应用范围内的导航和构建清单资源，不缓存 API、版本检查或第三方请求。首次完整离线包会额外下载懒加载模块。
@@ -159,12 +160,19 @@ node scripts/pwa-icons.mjs
 itabs-nav/
 ├─ index.html                # Vite 构建入口（必须在根目录，public/ 下的 html 不会被打包）
 ├─ public/
-│  └─ favicon.ico            # 静态资源原样拷贝到 dist/（index.html 以 ./favicon.ico 引用，兼容 file:// 与子路径）
+│  ├─ favicon.ico            # 静态资源原样拷贝到 dist/（index.html 以 ./favicon.ico 引用，兼容 file:// 与子路径）
+│  ├─ icons/                   # PWA 安装图标（192/512、maskable、Apple touch）
+│  └─ wallhaven-yqkl97.jpg     # 壁纸兜底图（自定义/随机壁纸加载失败时使用，进 SW 预缓存）
 ├─ vite.config.js              # Vite 配置（Less 全局变量注入 + codeSplitting 拆分 + 相对 base）
 ├─ package.json
 ├─ CHANGELOG.md              # 版本更新说明
+├─ tests/
+│  ├─ pwa.test.mjs             # PWA 构建产物与 Service Worker 行为测试（node:test + vm 模拟）
+│  └─ pdf-tools.test.mjs       # PDF 工具纯函数测试（页码范围解析 / 文件名清洗）
 ├─ scripts/
-│  └─ zip.mjs                  # 打包 zip 脚本
+│  ├─ zip.mjs                  # 打包 zip 脚本
+│  ├─ pwa.mjs                  # PWA 构建插件（生成 manifest.webmanifest + sw.js，扫描预缓存清单）
+│  └─ pwa-icons.mjs            # 重建 PWA 安装图标
 └─ src/
    ├─ main.js                  # 入口（Pinia + $t + v-tip 注册）
    ├─ App.vue                  # 根布局（多面板 + 滚轮切换 + 弹窗宿主 + 任务栏 + 极简模式过渡）
@@ -178,7 +186,7 @@ itabs-nav/
    ├─ data/
    │  ├─ regions.js            # 地区数据
    │  └─ siteCategories.js     # 站点分类数据
-   ├─ utils/                   # http / openExternal / dailyCache / lunar / thesvg / fullscreenMixin
+   ├─ utils/                   # http / openExternal / dailyCache / lunar / thesvg / fullscreenMixin / pdfTools
    ├─ db/
    │  └─ index.js              # IndexedDB 数据层（sites/settings/todos/events/cache，v6；widgets 为旧版遗留表仅保留）
    ├─ stores/                  # Pinia（sites/settings/panels/todos/events/weather/hot/saying/ui）
@@ -189,7 +197,8 @@ itabs-nav/
    │  ├─ useConfirm.js         # 全局确认弹窗
    │  ├─ useTip.js             # tooltip 逻辑
    │  ├─ useEscapeClose.js     # Esc 关闭弹窗
-   │  └─ useUpdateChecker.js   # 版本更新检查
+   │  ├─ useUpdateChecker.js   # 版本更新检查
+   │  └─ usePwa.js             # PWA 注册 / 更新激活 / 安装引导
    ├─ directives/
    │  └─ tip.js                # v-tip 全局指令
    ├─ components/
@@ -201,8 +210,9 @@ itabs-nav/
    │  ├─ sites/                # SiteGrid / SiteCard / SiteContextMenu / SiteEditor / AddCardMenu
    │  ├─ dialogs/              # Weather / Todo / Calendar / Hot / WorldTime / WidgetPreview
    │  ├─ settings/             # SettingsPanel / SettingsGeneral / SettingsData / SettingsAbout
-   │  └─ widgets/              # SplitTextPreview / EmailPreview / WallpaperPreview / ContentDiffPreview 等工具预览
-   │                             #   └─ diffUtils.js  内容对比的 diff 算法（纯函数，Myers）
+   │  └─ widgets/              # 各工具预览（SplitText / Email / Wallpaper / WeekReport / EncodeDecode / QrCode / ContentDiff）
+   │                             #   ├─ diffUtils.js  内容对比的 diff 算法（纯函数，Myers）
+   │                             #   └─ pdf/  PDF工具三面板（合并 / 拆分 / 水印），壳组件 PdfMergePreview 负责页签与弹窗预览
    └─ widgets/                    （已废弃，组件统一收口在 views/widgets/）
 ```
 
@@ -224,6 +234,7 @@ itabs-nav/
 | 二维码 | qrcode-generator / jsqr（生成与扫描） |
 | 数据可视化 | echarts（周报统计图表） |
 | Excel 导入导出 | xlsx（SheetJS） |
+| PDF 处理 | pdf-lib（合并/拆分/水印，纯浏览器本地处理，不经服务端） |
 | 打包 | adm-zip（devDep） |
 | 样式 | Less（变量全局注入 + 玻璃拟态） |
 
@@ -266,10 +277,10 @@ location.reload()
 - [x] 6 种站点尺寸
 - [x] 右键菜单 + 编辑主页模式 + 滚轮切换面板
 - [x] 主题色 + 6 套预设 + 深浅色（跟随系统）
-- [x] 壁纸（渐变/纯色/URL/随机 + 定时刷新）
+- [x] 壁纸（渐变/纯色/URL/随机 + 定时刷新 + 加载失败兜底本地图）
 - [x] 国际化（中/英）
 - [x] 时钟/天气/热搜/日历/待办/一言/飘雪小组件
-- [x] 工具卡（文本分割 / 免费邮箱 / 壁纸库）+ 预览弹窗 + 最小化任务栏
+- [x] 工具卡 8 枚（文本分割 / 免费邮箱 / 壁纸库 / 周报统计 / 编码解码 / 二维码 / 内容对比 / PDF工具）+ 预览弹窗 + 最小化任务栏
 - [x] 极简模式 + 侧栏收起（含搜索框下移动过渡 + 下方内容错峰淡入淡出）
 - [x] JSON 备份导出 / 恢复导入 / 重置清空
 - [x] 一键打包 zip（`file://` 可预览，`__BUILD_DATE__` 构建时间）
@@ -281,6 +292,8 @@ location.reload()
 - [x] 二维码生成/解码
 - [x] 内容对比（两段文本/代码逐行 diff）
 - [x] 加密解码工具
+- [x] PDF 工具（合并 / 页码范围拆分 / 文字水印 / 弹窗预览）
+- [x] PWA（安装 / 离线预缓存 / 版本更新先激活后刷新）
 
 ### 📭 计划中
 - [ ] 浏览器扩展（Manifest V3）
