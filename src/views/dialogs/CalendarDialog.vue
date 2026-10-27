@@ -1,8 +1,8 @@
 <script setup>
 /**
- * 日历弹窗（iTab 风格）左右布局
- *  左侧：月份+ 事件列表
- *  右侧：今日详情（公历、农历、节日、星座、宜、忌? *  支持全屏放大
+ * 日历弹窗（iTab 风格）左右布局，支持全屏放大
+ *  左侧：年月下拉 + 6×7 月历网格（节日/节气/休班角标/事件点标）
+ *  右侧：选中日期详情（公历、农历、节日、星座、宜忌、黄历）
  */
 import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
@@ -43,14 +43,8 @@ const { lang } = useI18n()
 const WEEKDAYS_CN = ['一', '二', '三', '四', '五', '六', '日']
 let WEEKDAYS = [...WEEKDAYS_CN]
 watch(lang, (l) => {
+  // 中英文星期表头均为周一起，与网格首列（周一）对齐
   WEEKDAYS = l === 'en' ? [...$t('calendar.weekdays')] : [...WEEKDAYS_CN]
-  // 周一开头：英文直接是 Sun..Sat（周日开头），中文需要[1..6, 0]
-  if (l === 'en') {
-    // 英文日历通常以 Sun 开头
-    WEEKDAYS = [...$t('calendar.weekdays')]
-  } else {
-    WEEKDAYS = [...WEEKDAYS_CN]
-  }
 }, { immediate: true })
 
 const year = computed(() => cursor.value.getFullYear())
@@ -154,7 +148,7 @@ function close() {
 }
 
 /* ----- 右侧"今日"详情：默认显示今天，点选左侧后联动到选中日期 ----- */
-const todayInfo = computed(() => {
+const selectedDayInfo = computed(() => {
   // 默认今天；如果用户选了别的日期，联动到选中日期
   const isSelecting = selectedDate.value !== formatDate(new Date())
   const t = isSelecting
@@ -172,6 +166,7 @@ const todayInfo = computed(() => {
     zodiac: getZodiac(t),
     lunar: getLunarInfo(t),
     almanac: getDayAlmanac(t),
+    holiday: getHoliday(t),
   }
 })
 </script>
@@ -180,6 +175,7 @@ const todayInfo = computed(() => {
   <BaseDialog
     :open="open"
     :title="$t('calendar.title')"
+    height="min(680px, 88vh)"
     max-height="90vh"
     padding="22px 24px 18px"
     overflow="auto"
@@ -240,6 +236,8 @@ const todayInfo = computed(() => {
             </div>
 
             <div class="days">
+              <!-- 当前月份水印：纯装饰，不响应指针 -->
+              <div class="month-watermark" aria-hidden="true">{{ String(month).padStart(2, '0') }}</div>
               <button
                 v-for="cell in cells"
                 :key="cell.key"
@@ -284,16 +282,21 @@ const todayInfo = computed(() => {
             <div class="info-card glass">
               <div class="info-date">
                 <div class="big-date">
-                  {{ todayInfo.date.getDate() }}
+                  {{ selectedDayInfo.date.getDate() }}
                 </div>
                 <div class="sub-date">
-                  {{ $t('calendar.detailDate', { m: todayInfo.date.getMonth() + 1, w: todayInfo.weekDay, month: $t('calendar.months')[todayInfo.date.getMonth()], year: todayInfo.date.getFullYear(), week: $t('calendar.weekdays')[todayInfo.date.getDay() === 0 ? 6 : todayInfo.date.getDay() - 1] }) }}
+                  <span
+                    v-if="selectedDayInfo.holiday"
+                    class="date-tag"
+                    :class="selectedDayInfo.holiday.work ? 'tag-ban' : 'tag-xiu'"
+                  >{{ $t(selectedDayInfo.holiday.work ? 'calendar.workday' : 'calendar.dayoff') }}</span>
+                  {{ $t('calendar.detailDate', { m: selectedDayInfo.date.getMonth() + 1, w: selectedDayInfo.weekDay, month: $t('calendar.months')[selectedDayInfo.date.getMonth()], year: selectedDayInfo.date.getFullYear(), week: $t('calendar.weekdays')[selectedDayInfo.date.getDay() === 0 ? 6 : selectedDayInfo.date.getDay() - 1] }) }}
                 </div>
               </div>
               <!-- 全部节日/节气：按类型着色 chips -->
-              <div v-if="todayInfo.festivals.length" class="info-festivals">
+              <div v-if="selectedDayInfo.festivals.length" class="info-festivals">
                 <span
-                  v-for="(f, i) in todayInfo.festivals"
+                  v-for="(f, i) in selectedDayInfo.festivals"
                   :key="i"
                   class="fest-chip"
                   :class="`kind-${f.type}`"
@@ -303,19 +306,19 @@ const todayInfo = computed(() => {
               <div class="lunar-grid">
                 <div class="lg-item">
                   <span class="lg-label">{{ $t('calendar.lunarDate') }}</span>
-                  <span class="lg-value">{{ todayInfo.lunar.monthInChinese }}月{{ todayInfo.lunar.dayInChinese }}</span>
+                  <span class="lg-value">{{ selectedDayInfo.lunar.monthInChinese }}月{{ selectedDayInfo.lunar.dayInChinese }}</span>
                 </div>
                 <div class="lg-item">
                   <span class="lg-label">{{ $t('calendar.ganZhi') }}</span>
-                  <span class="lg-value">{{ todayInfo.lunar.yearInGanZhi }}年</span>
+                  <span class="lg-value">{{ selectedDayInfo.lunar.yearInGanZhi }}年</span>
                 </div>
                 <div class="lg-item">
                   <span class="lg-label">{{ $t('calendar.zodiacLabel') }}</span>
-                  <span class="lg-value">{{ $t('calendar.animals.' + todayInfo.lunar.shengXiao) }}</span>
+                  <span class="lg-value">{{ $t('calendar.animals.' + selectedDayInfo.lunar.shengXiao) }}</span>
                 </div>
                 <div class="lg-item">
                   <span class="lg-label">{{ $t('calendar.sign') }}</span>
-                  <span class="lg-value">{{ todayInfo.zodiac ? $t('calendar.zodiac.' + todayInfo.zodiac) : '—' }}</span>
+                  <span class="lg-value">{{ selectedDayInfo.zodiac ? $t('calendar.zodiac.' + selectedDayInfo.zodiac) : '—' }}</span>
                 </div>
               </div>
             </div>
@@ -325,14 +328,14 @@ const todayInfo = computed(() => {
                 <div class="yj-label">
                   <span class="yi-dot"></span>{{ $t('calendar.auspicious') }}</div>
                 <ul class="yj-list">
-                  <li v-for="(item, i) in todayInfo.almanac.yi" :key="i">{{ item }}</li>
+                  <li v-for="(item, i) in selectedDayInfo.almanac.yi" :key="i">{{ item }}</li>
                 </ul>
               </div>
               <div class="yj-block ji">
                 <div class="yj-label">
                   <span class="ji-dot"></span>{{ $t('calendar.inauspicious') }}</div>
                 <ul class="yj-list">
-                  <li v-for="(item, i) in todayInfo.almanac.ji" :key="i">{{ item }}</li>
+                  <li v-for="(item, i) in selectedDayInfo.almanac.ji" :key="i">{{ item }}</li>
                 </ul>
               </div>
             </div>
@@ -342,28 +345,28 @@ const todayInfo = computed(() => {
               <div class="almanac-row">
                 <div class="ar-item">
                   <span class="ar-label">{{ $t('calendar.fetalGod') }}</span>
-                  <span class="ar-value">{{ todayInfo.almanac.positionTai }}</span>
+                  <span class="ar-value">{{ selectedDayInfo.almanac.positionTai }}</span>
                 </div>
                 <div class="ar-item">
                   <span class="ar-label">{{ $t('calendar.taiSui') }}</span>
                   <span class="ar-value">
-                    {{ todayInfo.almanac.taiSui }}
+                    {{ selectedDayInfo.almanac.taiSui }}
                   </span>
                 </div>
                 <div class="ar-item">
                   <span class="ar-label">{{ $t('calendar.xiuLabel') }}</span>
-                  <span class="ar-value">{{ todayInfo.almanac.xiu }}</span>
+                  <span class="ar-value">{{ selectedDayInfo.almanac.xiu }}</span>
                 </div>
               </div>
-              <div v-if="todayInfo.almanac.xiuSong" class="xiu-song">
-                {{ todayInfo.almanac.xiuSong }}
+              <div v-if="selectedDayInfo.almanac.xiuSong" class="xiu-song">
+                {{ selectedDayInfo.almanac.xiuSong }}
               </div>
-              <div v-if="todayInfo.almanac.pengZuGan || todayInfo.almanac.pengZuZhi" class="pengzu">
-                <div v-if="todayInfo.almanac.pengZuGan">
-                  {{ $t('calendar.pengZuGan', { v: todayInfo.almanac.pengZuGan }) }}
+              <div v-if="selectedDayInfo.almanac.pengZuGan || selectedDayInfo.almanac.pengZuZhi" class="pengzu">
+                <div v-if="selectedDayInfo.almanac.pengZuGan">
+                  {{ $t('calendar.pengZuGan', { v: selectedDayInfo.almanac.pengZuGan }) }}
                 </div>
-                <div v-if="todayInfo.almanac.pengZuZhi">
-                  {{ $t('calendar.pengZuZhi', { v: todayInfo.almanac.pengZuZhi }) }}
+                <div v-if="selectedDayInfo.almanac.pengZuZhi">
+                  {{ $t('calendar.pengZuZhi', { v: selectedDayInfo.almanac.pengZuZhi }) }}
                 </div>
               </div>
             </div>
@@ -491,18 +494,32 @@ const todayInfo = computed(() => {
 }
 
 .days {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   grid-auto-rows: minmax(70px, 1fr);  /* 固定最小高度70px，且行平均分配 */
   gap: 4px;
   margin-bottom: 16px;
+  /* 拉伸吃满左栏剩余高度（全屏同样生效），行高 1fr 自动分配 */
+  flex: 1;
+  min-height: 0;
   /* 防止切换月份时高度跳动 */
   contain: layout;
 }
 
-/* 全屏时：让日历网格填满左侧可用高度 */
-.cal-root.is-fullscreen .days {
-  flex: 1;
+/* 当前月份大字水印：压在格子底层，pointer-events 穿透 */
+.month-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(80px, 11vw, 150px);
+  font-weight: 800;
+  letter-spacing: 6px;
+  color: color-mix(in srgb, @accent 6%, transparent);
+  pointer-events: none;
+  user-select: none;
 }
 
 .day {
@@ -674,6 +691,12 @@ const todayInfo = computed(() => {
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
+  /* 滚动条视觉隐藏（滚轮/触摸滚动不受影响） */
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .info-card {
@@ -713,6 +736,27 @@ const todayInfo = computed(() => {
 .sub-date {
   font-size: 13px;
   color: @text-soft;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 休/班角标：与左侧日期格 tag-xiu/tag-ban 同色系 */
+.date-tag {
+  font-size: 11px;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 600;
+
+  &.tag-xiu {
+    background: @danger;
+  }
+
+  &.tag-ban {
+    background: #94a3b8;
+  }
 }
 
 /* 节日/节气 chips：类型着色，与左侧 cell-label 同色系 */

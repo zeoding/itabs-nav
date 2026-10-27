@@ -319,6 +319,8 @@ export default {
     xiuLabel: 'Lunar mansion',
     fetalGod: 'Fetal God',
     taiSui: 'Tai Sui',
+    dayoff: 'Off',
+    workday: 'Work',
     sign: 'Constellation',
     auspicious: 'Auspicious',
     inauspicious: 'Inauspicious',

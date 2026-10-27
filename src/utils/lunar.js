@@ -81,11 +81,6 @@ export function isWeekend(date) {
   return w === 0 || w === 6
 }
 
-/** 是否法定节假日（有节日标记） */
-export function hasFestival(date) {
-  return getFestivals(date).length > 0
-}
-
 /**
  * 法定节假日/补班日（基于 lunar-javascript 内置国务院安排数据）
  * - 放假（含周末连休的法定假）：{ work: false, name: '国庆中秋' }
