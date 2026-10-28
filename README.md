@@ -32,7 +32,7 @@
 - 🌤 **天气**（uapis 聚合接口；IP 定位 + Nominatim 逆地理回退城市，每日缓存，卡片可手动刷新）
 - 🔥 **热搜榜**（百度 / 微博 / 知乎 / 抖音 / B 站；uapis 主源 + imsyy 备源 fallback，每日缓存）
 - ✅ **待办**（未完成 / 已完成 / 回收站 + 批量操作 + 拖拽排序）
-- 📅 **日历**（含农历/宜忌/节日/黄历）
+- 📅 **日历**（含农历/宜忌/节日/黄历；农历库动态加载，打开弹窗时异步补齐，不阻塞其它弹窗）
 - 🕰️ **世界时钟**：点击时钟卡片查看全球多时区当前时间（时差与跨天标注）
 - 💬 **每日一言**（uapis 随机一言，每日缓存，支持复制/刷新）
 - ❄️ **飘雪特效**（右上快捷区开关，状态持久化）
@@ -40,7 +40,7 @@
   - ✂️ 文本分割（逗号/分号/斜杠/换行/自定义分隔，去重/计数/分组，CSV 导出）
   - 📫 免费邮箱 / 🖼️ 壁纸库（Wallhaven 搜索，sfw）
   - 📊 **周报统计**：汇总页签含汇总表/明细表，数据页签为原始导入数据，支持 Excel 导出
-  - 📱 **二维码生成/解码**：生成网址/文本二维码，支持扫描解码
+  - 📱 **二维码生成/解码**：生成网址/文本二维码，支持扫描解码（解码库 jsqr 仅在识别图片时下载）
   - 🔀 **内容对比**：两段文本/代码逐行 diff，高亮新增/删除/修改（词级细分），支持并排/统一/仅差异三视图、忽略大小写与空白、折叠相同行、导入文件、导出 diff
   - 🔐 **编码解码**：Base64 / URL / Hex / 哈希 / AES / RSA 等编码与加解密
   - 📄 **PDF工具**：多份 PDF 合并、按页码范围拆分、添加文字水印；pdf-lib 纯本地处理，结果弹窗预览、输出文件名可编辑
@@ -64,7 +64,10 @@
 ### 工程
 - ⚡ **Vite 8**（Rolldown）+ Vue 3（Composition API + `<script setup>`）+ Pinia
 - 📦 **按需加载**：天气/待办/日历/热搜/设置/站点编辑等弹窗走 `defineAsyncComponent`，首屏 JS 减半
-- 🗂️ **代码分割**：`codeSplitting.groups`（vendor-core / vendor-ui / lunar-libs / crypto-libs / qr-libs / widget-libs / dialogs / app-runtime；`@remixicon/vue` 需保持 tree-shaking，勿提高 vendor-core 优先级）
+- 🗂️ **代码分割**：`codeSplitting.groups`（vendor-core / vendor-ui / lunar-libs / crypto-libs / qr-libs / jsqr-libs / pdf-libs / widget-libs / dialogs / app-runtime；`@remixicon/vue` 需保持 tree-shaking，勿提高 vendor-core 优先级）
+  - 重库一律独立成块 + 动态 `import()`：农历库（打开日历才拉）、pdf-lib（点合并才拉）、echarts/xlsx（打开周报才拉）、jsqr（点识别图片才拉，与生成用的 qrcode-generator 拆成两块，避免静态边连带）
+  - 二维码生成库 `qrcode-generator` 与解码库 `jsqr` 必须分属不同组：共用一块时生成功能的静态依赖会把 jsqr 一并拉下来
+  - `define` 关闭 `__VUE_OPTIONS_API__` 等未使用分支（全工程组合式 API）
 - 🗜️ **打包 zip**：`npm run build:zip` 一键生成部署包（`base: './'`，解压即 `index.html` + `favicon.ico` + `js/ + css/ + images/ + fonts/ + media/`，支持 `file://` 预览；文件名均带 hash）
 - 🕰️ **构建时间**：`__BUILD_DATE__` 编译期常量（本地时区 `YYYY-MM-DD HH:mm`）
 - 🔄 **版本更新提醒**：构建时自动生成 `dist/version.json`（版本号取自 `package.json`，更新说明提取自 `CHANGELOG.md` 同版本段落）；运行时启动首检 + 每 6h 轮询 + 标签页可见补检，发现新版本顶部弹提示条（立即刷新 / 稍后提醒 / 忽略此版本），设置 → 关于可手动检查。发版只需 bump version + 在 `CHANGELOG.md` 顶部追加 `## x.y.z` 段落
@@ -186,7 +189,7 @@ itabs-nav/
    ├─ data/
    │  ├─ regions.js            # 地区数据
    │  └─ siteCategories.js     # 站点分类数据
-   ├─ utils/                   # http / openExternal / dailyCache / lunar / thesvg / fullscreenMixin / pdfTools
+   ├─ utils/                   # http / openExternal / dailyCache / lunar / thesvg / fullscreenMixin / pdfTools / lazyDialog / datetime / download / clipboard / version
    ├─ db/
    │  └─ index.js              # IndexedDB 数据层（sites/settings/todos/events/cache，v6；widgets 为旧版遗留表仅保留）
    ├─ stores/                  # Pinia（sites/settings/panels/todos/events/weather/hot/saying/ui）
@@ -231,7 +234,7 @@ itabs-nav/
 | 日期 | lunar-javascript（农历 / 节气） |
 | 图标 | @remixicon/vue + @thesvg/icons（后者独立分包懒加载）；站点 favicon 直取目标站 `/favicon.ico` |
 | 编码/加密 | crypto-js（Base64/hex/MD5 编码解码） |
-| 二维码 | qrcode-generator / jsqr（生成与扫描） |
+| 二维码 | qrcode-generator（生成，打开工具即用）/ jsqr（解码，仅识别图片时动态加载） |
 | 数据可视化 | echarts（周报统计图表） |
 | Excel 导入导出 | xlsx（SheetJS） |
 | PDF 处理 | pdf-lib（合并/拆分/水印，纯浏览器本地处理，不经服务端） |
@@ -285,7 +288,8 @@ location.reload()
 - [x] JSON 备份导出 / 恢复导入 / 重置清空
 - [x] 一键打包 zip（`file://` 可预览，`__BUILD_DATE__` 构建时间）
 - [x] 弹窗懒加载 + loading 占位
-- [x] 代码分割（vendor-core / vendor-ui / lunar-libs / crypto-libs / qr-libs / widget-libs / dialogs / app-runtime）
+- [x] 代码分割（vendor-core / vendor-ui / lunar-libs / crypto-libs / qr-libs / jsqr-libs / pdf-libs / widget-libs / dialogs / app-runtime）
+- [x] 按需加载重库（农历 / pdf-lib / echarts+xlsx / jsqr 均按使用时机动态加载，任意弹窗打开不再连带下载农历库）
 - [x] 版本更新提醒（自动检测 + 本地存储）
 - [x] 周报统计 + Excel 导出
 - [x] 网址导航（站点分类浏览 + 搜索）
