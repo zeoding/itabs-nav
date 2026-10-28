@@ -486,6 +486,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  height: 100%;
   position: relative;
 }
 
@@ -594,6 +595,15 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   margin-top: 14px;
   min-height: 0;
+  /* 滚动区：工具栏固定在外；矩阵表列多时横向滚动，纵向滚动时表头吸顶。
+     滚动条视觉隐藏，滚轮/触摸滚动不受影响 */
+  flex: 1;
+  overflow: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .tables {
@@ -628,6 +638,8 @@ onBeforeUnmount(() => {
 
 .wr-table {
   width: 100%;
+  /* 矩阵列多时不压缩单元格，撑开 panels 横向滚动 */
+  min-width: max-content;
   border-collapse: collapse;
   font-size: 12px;
   margin-bottom: 16px;
@@ -642,6 +654,15 @@ onBeforeUnmount(() => {
   th {
     background: @icon-bg;
     font-weight: 600;
+  }
+
+  /* 列头吸顶：毛玻璃垫底防透字；collapse 边框随 sticky 丢失，内阴影补右/下边 */
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    backdrop-filter: blur(8px);
+    box-shadow: inset -1px -1px 0 color-mix(in srgb, @text 16%, transparent);
   }
 
   .table-title {

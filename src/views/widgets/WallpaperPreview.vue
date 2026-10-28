@@ -64,6 +64,12 @@ const loading = ref(false)
 const error = ref('')
 const lightbox = ref(null) // 当前放大的壁纸对象
 const setDone = ref(false) // 「已设为壁纸」临时反馈
+const listEl = ref(null) // 内容滚动区（搜索栏/筛选固定在外）
+
+/** 翻页/换一批后内容整体替换，把滚动区带回顶部，避免停在新页中段 */
+function scrollTop() {
+  listEl.value?.scrollTo({ top: 0, behavior: 'smooth' })
+}
 const downloading = ref(false) // 下载中状态（防重复点击）
 const imgLoading = ref(false) // 预览大图加载态（切换图片时置 true，load/error 后置 false）
 /* 灯箱图片缩放（自持：zoom + 平移 + 拖拽） */
@@ -203,13 +209,13 @@ function onSorting(value) {
 function prevPage() {
   if (page.value <= 1 || loading.value) return
   page.value -= 1
-  load(false)
+  load(false).then(scrollTop)
 }
 
 function nextPage() {
   if (page.value >= lastPage.value || loading.value) return
   page.value += 1
-  load(false)
+  load(false).then(scrollTop)
 }
 
 /** 换一批：random 排序直接重载第 1 页（服务端重洗牌）；否则跳随机页 */
@@ -221,7 +227,7 @@ function shuffle() {
     const max = Math.max(1, Math.min(lastPage.value, 25))
     page.value = 1 + Math.floor(Math.random() * max)
   }
-  load(true)
+  load(true).then(scrollTop)
 }
 
 function openLightbox(item) {
@@ -398,33 +404,35 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- 内容区 -->
-    <div v-if="loading && !items.length" class="state">{{ $t('common.loading') }}</div>
-    <div v-else-if="error && !items.length" class="state error">
-      <p>{{ error }}</p>
-      <button type="button" class="btn primary" @click="load(true)">{{ $t('wallpaper.retry') }}</button>
-    </div>
-    <div v-else-if="!items.length" class="state">{{ $t('wallpaper.empty') }}</div>
-    <ul v-else class="grid">
-      <li v-for="item in items" :key="item.id" class="cell">
-        <button type="button" class="thumb-btn" @click="openLightbox(item)" :title="item.resolution">
-          <img class="thumb" :src="item.thumb" :alt="item.id" loading="lazy" />
-          <span class="resolution">{{ item.resolution }}</span>
-        </button>
-      </li>
-    </ul>
+    <!-- 内容区（滚动区：搜索栏/分类/排序固定在外不随滚动消失） -->
+    <div ref="listEl" class="list-area">
+      <div v-if="loading && !items.length" class="state">{{ $t('common.loading') }}</div>
+      <div v-else-if="error && !items.length" class="state error">
+        <p>{{ error }}</p>
+        <button type="button" class="btn primary" @click="load(true)">{{ $t('wallpaper.retry') }}</button>
+      </div>
+      <div v-else-if="!items.length" class="state">{{ $t('wallpaper.empty') }}</div>
+      <ul v-else class="grid">
+        <li v-for="item in items" :key="item.id" class="cell">
+          <button type="button" class="thumb-btn" @click="openLightbox(item)" :title="item.resolution">
+            <img class="thumb" :src="item.thumb" :alt="item.id" loading="lazy" />
+            <span class="resolution">{{ item.resolution }}</span>
+          </button>
+        </li>
+      </ul>
 
-    <!-- 翻页 -->
-    <div v-if="items.length" class="pager">
-      <button type="button" class="page-btn" :disabled="page <= 1" @click="prevPage">
-        <RiArrowLeftSLine size="15" aria-hidden="true" />
-        <span>{{ $t('wallpaper.prevPage') }}</span>
-      </button>
-      <span class="page-info">{{ $t('wallpaper.pageOf', { n: page, m: lastPage }) }}</span>
-      <button type="button" class="page-btn" :disabled="page >= lastPage" @click="nextPage">
-        <span>{{ $t('wallpaper.nextPage') }}</span>
-        <RiArrowRightSLine size="15" aria-hidden="true" />
-      </button>
+      <!-- 翻页 -->
+      <div v-if="items.length" class="pager">
+        <button type="button" class="page-btn" :disabled="page <= 1" @click="prevPage">
+          <RiArrowLeftSLine size="15" aria-hidden="true" />
+          <span>{{ $t('wallpaper.prevPage') }}</span>
+        </button>
+        <span class="page-info">{{ $t('wallpaper.pageOf', { n: page, m: lastPage }) }}</span>
+        <button type="button" class="page-btn" :disabled="page >= lastPage" @click="nextPage">
+          <span>{{ $t('wallpaper.nextPage') }}</span>
+          <RiArrowRightSLine size="15" aria-hidden="true" />
+        </button>
+      </div>
     </div>
 
     <!-- 灯箱预览（公共弹窗容器：标题/ESC/全屏/关闭统一由 BaseDialog 接管；固定高度避免大图加载时跳变） -->
@@ -521,12 +529,14 @@ onMounted(async () => {
   flex-direction: column;
   gap: 12px;
   min-height: 0;
+  height: 100%;
 }
 
 /* 搜索栏 */
 .toolbar {
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
   align-items: center;
 }
 
@@ -581,6 +591,19 @@ onMounted(async () => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+/* 内容滚动区（搜索栏/分类/排序固定在外）；滚动条视觉隐藏，滚轮/触摸滚动不受影响 */
+.list-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .seg {
@@ -690,6 +713,8 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   gap: 12px;
+  /* 原 .wallpaper 根 gap 12px 只作用于固定区（pager 已移入 .list-area），这里补回 */
+  margin-top: 12px;
 }
 
 .page-btn {
