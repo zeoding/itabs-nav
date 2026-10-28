@@ -19,7 +19,6 @@ import {
 } from '@remixicon/vue'
 import {
   getFestivals,
-  getLunarLabel,
   getZodiac,
   getLunarInfo,
   getDayAlmanac,
@@ -115,60 +114,111 @@ const isCurrentMonth = (d) => d.getMonth() === month.value - 1
 const todayKey = formatDate(new Date())
 
 /**
- * 42 格视图模型：每格的标签/节日/假日/事件点在此一次性算好。
- * 此前模板对每格重复调用 getCellLabel ×3、getFestivals ×2、hasFestival，
- * 单次渲染约 200+ 次 lunar-javascript 重算，点选/翻月都会全格重算。
- * 注意：选中态依赖 selectedDate，必须留在模板（cell.key === selectedDate），
- * 不能进本 computed，否则点一下日期就触发 42 格 lunar 全量重算。
+ * 42 格视图模型：同步骨架 + 异步农历补齐。
+ * - 农历接口（getFestivals/getCellLabel/getHoliday）已 async 化，顶层不连带
+ *   下载 ~300KB 农历库；因此格子先以同步骨架渲染（公历数字/今天/周末/事件点），
+ *   农历标签、节日、休班角标在库加载后填充。
+ * - holiday 为 { work, name } | null，与右侧详情同构，文案走 i18n。
+ * - 注意：选中态依赖 selectedDate，必须留在模板（cell.key === selectedDate），
+ *   不能进重算逻辑，否则点一下日期就触发 42 格农历全量重算。
  */
-const cells = computed(() => {
-  const eventDates = new Set(events.value.map((e) => e.date))
-  return grid.value.map((d) => {
-    const key = formatDate(d)
-    const fests = getFestivals(d)
-    const h = getHoliday(d)
+function buildCellSkeleton(d, eventDates) {
+  const key = formatDate(d)
+  return {
+    date: d,
+    key,
+    day: d.getDate(),
+    otherMonth: !isCurrentMonth(d),
+    today: key === todayKey,
+    weekend: isWeekend(d),
+    festival: false,
+    label: { text: '', kind: '' },
+    festivalsText: '',
+    holiday: null,
+    hasEvent: eventDates.has(key),
+  }
+}
+
+const cells = ref([])
+let cellSeq = 0
+watch([grid, events], async ([days, evs]) => {
+  const seq = ++cellSeq
+  const eventDates = new Set(evs.map((e) => e.date))
+  const skeleton = days.map((d) => buildCellSkeleton(d, eventDates))
+  cells.value = skeleton
+  const extras = await Promise.all(
+    days.map(async (d) => {
+      const fests = await getFestivals(d)
+      const [h, label] = await Promise.all([getHoliday(d), getCellLabel(d, fests)])
+      return { fests, h, label }
+    })
+  )
+  // 翻页/事件变化的乱序回填守卫：只认最后一次请求
+  if (seq !== cellSeq) return
+  cells.value = skeleton.map((base, i) => {
+    const { fests, h, label } = extras[i]
     return {
-      date: d,
-      key,
-      day: d.getDate(),
-      otherMonth: !isCurrentMonth(d),
-      today: key === todayKey,
-      weekend: isWeekend(d),
+      ...base,
       festival: fests.length > 0,
-      label: getCellLabel(d, fests),
+      label,
       festivalsText: fests.map((f) => f.name).join(' / '),
-      holiday: h ? (h.work ? '班' : '休') : '',
-      hasEvent: eventDates.has(key),
+      holiday: h,
     }
   })
-})
+}, { immediate: true })
 
 function close() {
   emit('update:open', false)
 }
 
-/* ----- 右侧"今日"详情：默认显示今天，点选左侧后联动到选中日期 ----- */
-const selectedDayInfo = computed(() => {
-  // 默认今天；如果用户选了别的日期，联动到选中日期
-  const isSelecting = selectedDate.value !== formatDate(new Date())
-  const t = isSelecting
-    ? (() => {
-        const [y, m, d] = selectedDate.value.split('-').map(Number)
-        return new Date(y, m - 1, d)
-      })()
-    : new Date()
+/* ----- 右侧详情：默认今天，点选左侧后联动到选中日期 ----- */
+/**
+ * 同步骨架（公历部分）+ 异步补齐（农历/节日/黄历）。
+ * 农历接口 async 化后 computed 无法直接 await，改为 ref + watch；
+ * 骨架字段保持模板可安全访问的空结构（lunar/almanac 无 v-if 守卫）。
+ */
+function emptyAlmanac() {
+  return {
+    yi: [], ji: [], positionTai: '', xiu: '',
+    xiuSong: '', pengZuGan: '', pengZuZhi: '', taiSui: '',
+  }
+}
+
+function infoSkeleton(t) {
   return {
     date: t,
     dateStr: formatDate(t),
     weekDay: ['日', '一', '二', '三', '四', '五', '六'][t.getDay()],
-    festivals: getFestivals(t),
-    lunarLabel: getLunarLabel(t),
+    festivals: [],
     zodiac: getZodiac(t),
-    lunar: getLunarInfo(t),
-    almanac: getDayAlmanac(t),
-    holiday: getHoliday(t),
+    lunar: { yearInGanZhi: '', shengXiao: '', monthInChinese: '', dayInChinese: '', fullText: '' },
+    almanac: emptyAlmanac(),
+    holiday: null,
   }
-})
+}
+
+const selectedDayInfo = ref(infoSkeleton(new Date()))
+let infoSeq = 0
+watch(selectedDate, async (key) => {
+  const seq = ++infoSeq
+  // 默认今天；如果用户选了别的日期，联动到选中日期
+  const isSelecting = key !== formatDate(new Date())
+  const t = isSelecting
+    ? (() => {
+        const [y, m, d] = key.split('-').map(Number)
+        return new Date(y, m - 1, d)
+      })()
+    : new Date()
+  selectedDayInfo.value = infoSkeleton(t)
+  const [festivals, lunar, almanac, holiday] = await Promise.all([
+    getFestivals(t),
+    getLunarInfo(t),
+    getDayAlmanac(t),
+    getHoliday(t),
+  ])
+  if (seq !== infoSeq) return
+  selectedDayInfo.value = { ...selectedDayInfo.value, festivals, lunar, almanac, holiday }
+}, { immediate: true })
 </script>
 
 <template>
@@ -249,8 +299,8 @@ const selectedDayInfo = computed(() => {
                     selected: cell.key === selectedDate,
                     weekend: cell.weekend,
                     festival: cell.festival,
-                    xiu: cell.holiday === '休',
-                    ban: cell.holiday === '班',
+                    xiu: cell.holiday !== null && !cell.holiday.work,
+                    ban: cell.holiday !== null && cell.holiday.work,
                   },
                 ]"
                 :data-cell-kind="cell.label.kind"
@@ -267,8 +317,8 @@ const selectedDayInfo = computed(() => {
                 <span
                   v-if="cell.holiday"
                   class="day-tag"
-                  :class="cell.holiday === '休' ? 'tag-xiu' : 'tag-ban'"
-                >{{ cell.holiday }}</span>
+                  :class="cell.holiday.work ? 'tag-ban' : 'tag-xiu'"
+                >{{ $t(cell.holiday.work ? 'calendar.workday' : 'calendar.dayoff') }}</span>
                 <span
                   v-if="cell.hasEvent"
                   class="dot"

@@ -4,14 +4,24 @@
  * 提供：
  *  - getFestivals(date)         阳历 + 24 节气 + 农历节日（按类型分）
  *  - getLunarInfo(date)         完整农历信息（年柱、生肖、农历月日）
- *  - getZodiac(date)            星座
+ *  - getZodiac(date)            星座（同步，纯本地计算）
  *  - getDayAlmanac(date)        今日宜/忌/值神/星宿等
+ *
+ * lunar-javascript 为按需动态加载（memoized）：顶层静态 import 会让任何
+ * 静态引用本模块的弹窗 chunk 连带下载 ~300KB 农历库；动态化后只有真正
+ * 调用到农历接口的调用方（日历弹窗）在运行时拉取。依赖库的函数因此
+ * 全部为 async，isWeekend / getZodiac 不依赖库，保持同步。
  */
-import { Solar, HolidayUtil } from 'lunar-javascript'
+let libPromise = null
+function loadLunar() {
+  libPromise ??= import('lunar-javascript')
+  return libPromise
+}
 
 /** 获取某日期的所有节日，按类型分组 */
-export function getFestivals(date) {
+export async function getFestivals(date) {
   const d = date instanceof Date ? date : new Date(date)
+  const { Solar } = await loadLunar()
   const solar = Solar.fromDate(d)
   const lunar = solar.getLunar()
   const list = []
@@ -35,29 +45,17 @@ export function getFestivals(date) {
   return list
 }
 
-/** 农历简短标签（用于日期格上方的红字） */
-export function getLunarLabel(date) {
-  const fests = getFestivals(date)
-  // 优先返回：节气 > 农历节日 > 阳历节日
-  const term = fests.find((f) => f.type === 'term')
-  if (term) return term.name
-  const lun = fests.find((f) => f.type === 'lunar')
-  if (lun) return lun.name
-  const sol = fests.find((f) => f.type === 'solar')
-  return sol ? sol.name : ''
-}
-
 /**
  * 给日期格使用的简短标签
  * - 优先：节气 / 节日
  * - 否则：农历日（如"初一"、"廿三"）
  * @param {Date} date
- * @param {Array} [precomputed] 可选，调用方已算好的 getFestivals(date) 结果，
+ * @param {Array} [precomputed] 可选，调用方已 await 好的 getFestivals(date) 结果，
  *   供批量渲染（日历 42 格）复用，避免同一日期重复做 lunar 转换
  */
-export function getCellLabel(date, precomputed) {
+export async function getCellLabel(date, precomputed) {
   const d = date instanceof Date ? date : new Date(date)
-  const fests = precomputed ?? getFestivals(d)
+  const fests = precomputed ?? (await getFestivals(d))
   if (fests.length > 0) {
     // 优先级：节气 > 农历节日 > 阳历节日
     const term = fests.find((f) => f.type === 'term')
@@ -67,7 +65,8 @@ export function getCellLabel(date, precomputed) {
     const sol = fests.find((f) => f.type === 'solar')
     if (sol) return { text: sol.name, kind: 'solar' }
   }
-  // 农历日
+  // 农历日（只有走到这个分支才需要加载农历库）
+  const { Solar } = await loadLunar()
   const solar = Solar.fromDate(d)
   const lunar = solar.getLunar()
   const dayText = lunar.getDayInChinese()
@@ -87,8 +86,9 @@ export function isWeekend(date) {
  * - 调休补班日：{ work: true, name: '国庆中秋' }
  * - 普通日：null
  */
-export function getHoliday(date) {
+export async function getHoliday(date) {
   const d = date instanceof Date ? date : new Date(date)
+  const { HolidayUtil } = await loadLunar()
   const h = HolidayUtil.getHoliday(d.getFullYear(), d.getMonth() + 1, d.getDate())
   if (!h) return null
   return { work: h.isWork(), name: h.getName() }
@@ -134,11 +134,11 @@ export function getZodiac(date) {
  *   monthInChinese: '正',
  *   dayInChinese: '初一',
  *   fullText: '甲辰年正月初一',
- *   festivals: [...] // 同 getFestivals
  * }
  */
-export function getLunarInfo(date) {
+export async function getLunarInfo(date) {
   const d = date instanceof Date ? date : new Date(date)
+  const { Solar } = await loadLunar()
   const solar = Solar.fromDate(d)
   const lunar = solar.getLunar()
   return {
@@ -147,7 +147,6 @@ export function getLunarInfo(date) {
     monthInChinese: lunar.getMonthInChinese(),
     dayInChinese: lunar.getDayInChinese(),
     fullText: `${lunar.getYearInGanZhi()}年${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`,
-    festivals: getFestivals(d),
   }
 }
 
@@ -164,8 +163,9 @@ export function getLunarInfo(date) {
  *   taiSui: '壬子',  // 太岁
  * }
  */
-export function getDayAlmanac(date) {
+export async function getDayAlmanac(date) {
   const d = date instanceof Date ? date : new Date(date)
+  const { Solar } = await loadLunar()
   const solar = Solar.fromDate(d)
   const lunar = solar.getLunar()
   return {
