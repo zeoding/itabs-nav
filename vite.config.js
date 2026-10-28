@@ -89,6 +89,10 @@ export default defineConfig({
     __BUILD_DATE__: JSON.stringify(buildDateString()),
     // 与 dist/version.json 的 buildTime 同源，供运行时判断构建产物是否已更新
     __BUILD_TIME__: JSON.stringify(BUILD_TIME),
+    // 全工程组合式 API（无 Options API/mixins），关掉对应运行时分支省体积
+    __VUE_OPTIONS_API__: JSON.stringify(false),
+    __VUE_PROD_DEVTOOLS__: JSON.stringify(false),
+    __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: JSON.stringify(false),
   },
   // 相对路径：dist 可直接 file:// 预览或部署到任意子路径，否则绝对 /assets 会 404 白屏
   base: './',
@@ -167,10 +171,15 @@ export default defineConfig({
               priority: 25,
             },
             {
-              // 二维码 widget 专用依赖（qrcode-generator 生成 / jsqr 解码）：
-              // 独立分包，仅打开该 widget 时下载，避免落进 vendor 兜底块被首屏连带加载
+              // 二维码生成（静态依赖，打开工具即需）与解码（仅识别图片时动态
+              // import）必须拆成两个块：共用一块会被静态边连带下载 jsqr（~135KB）
               name: 'qr-libs',
-              test: /node_modules[\\/](qrcode-generator|jsqr)/,
+              test: /node_modules[\\/](qrcode-generator)/,
+              priority: 25,
+            },
+            {
+              name: 'jsqr-libs',
+              test: /node_modules[\\/](jsqr)/,
               priority: 25,
             },
             {

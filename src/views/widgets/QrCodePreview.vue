@@ -19,7 +19,6 @@
  */
 import { ref, shallowRef, computed, watch, onMounted, nextTick } from 'vue'
 import qrcode from 'qrcode-generator'
-import jsQR from 'jsqr'
 import { useMessage } from '@/composables/useMessage'
 import { $t } from '@/composables/useI18n'
 import { useFileDrop } from '@/composables/useFileDrop'
@@ -334,7 +333,11 @@ function decodeFile(file) {
   reader.readAsDataURL(file)
 }
 
-function runDecode(img) {
+/* jsQR 仅图片解码用，占 qr-libs 大头（~300KB）：首次解码时动态加载，
+   生成与相机入口不为此付出下载成本。 */
+let jsqrLoader = null
+
+async function runDecode(img) {
   decodeError.value = ''
   decoded.value = ''
   decodeImgUrl.value = img.src
@@ -354,10 +357,17 @@ function runDecode(img) {
   ctx.drawImage(img, 0, 0, w, h)
 
   const data = ctx.getImageData(0, 0, w, h)
-  const result = jsQR(data.data, w, h, { inversionAttempts: 'attemptBoth' })
-  if (result?.data) {
-    decoded.value = result.data
-  } else {
+  try {
+    jsqrLoader ??= import('jsqr').then((m) => m.default)
+    const jsQR = await jsqrLoader
+    const result = jsQR(data.data, w, h, { inversionAttempts: 'attemptBoth' })
+    if (result?.data) {
+      decoded.value = result.data
+    } else {
+      decodeError.value = $t('qrCode.notFound')
+    }
+  } catch (e) {
+    console.error('[qr] 解码失败:', e)
     decodeError.value = $t('qrCode.notFound')
   }
 }
