@@ -201,6 +201,8 @@ function minimize() {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  /* 与弹窗头部（标题栏）拉开间距，避免紧贴顶部的标题区 */
+  margin-top: 6px;
 }
 
 .cat-tag {
