@@ -130,20 +130,24 @@ function minimize() {
 
 <style scoped lang="less">
 /* 异步加载占位(用于 SplitTextPreview 懒加载期间) */
-.cp-loading-with-icon {
+/* WidgetLoading 由 h() 动态创建，需穿透本组件 scoped 边界。 */
+.content-area :deep(.cp-loading-with-icon) {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 50px 12px;
-
-  .spin {
-    animation: spin360 1s linear infinite;
-    color: @accent;
-  }
+  padding: 12px;
 }
 
-.cp-loading-text {
+.content-area :deep(.cp-loading-with-icon .spin) {
+  animation: spin360 1s linear infinite;
+  color: @accent;
+}
+
+.content-area :deep(.cp-loading-text) {
   font-size: 12px;
   color: @text-soft;
 }
@@ -224,8 +228,9 @@ function minimize() {
   min-width: 0;
 }
 
-/* 内容容器 */
+/* 内容容器：作为异步加载占位的定位区域 */
 .content-area {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
