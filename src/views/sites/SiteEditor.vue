@@ -40,6 +40,7 @@ import {
   RiCompass3Line,
   RiExternalLinkLine,
   RiAddLine,
+  RiCheckLine,
   RiSearchLine,
 } from '@remixicon/vue'
 
@@ -91,6 +92,21 @@ function wDesc(w) {
 
 /* 当前 WIDGETS 仅含内置工具类,直接透传,无需搜索/分类过滤 */
 const filteredWidgets = computed(() => WIDGETS)
+
+/** 当前面板已有的工具卡 kind 集合：命中即「已添加」，防止重复添加（同 dirAddedUrls 思路）。
+ *  判定基准 = props.panel（当前面板）：handleAddTool 经 store.add 落库到 currentPanel */
+const panelToolKinds = computed(() => {
+  const set = new Set()
+  const panel = props.panel || 'home'
+  for (const s of allSites.value) {
+    if ((s.panel || 'home') === panel && s.kind) set.add(s.kind)
+  }
+  return set
+})
+
+function isWidgetAdded(w) {
+  return panelToolKinds.value.has(w.kind)
+}
 
 /* ---------------- 网址导航 ---------------- */
 const sitesStore = useSitesStore()
@@ -332,10 +348,16 @@ function submitSite() {
 }
 
 function addWidget(widget) {
+  // 已添加（disabled 兜底）：直接忽略
+  if (isWidgetAdded(widget)) return
   // 内置工具类 widget：emit 给父组件写入站点(kind ∈ TOOL_KINDS)
   if (widget.kind && TOOL_KINDS.includes(widget.kind)) {
     emit('add-tool', widget.kind)
     emit('close')
+    // 成功提示对齐网址导航添加（addSuccess：已添加「{name}」到「{panel}」）
+    const panel = props.panel || 'home'
+    const panelLabel = dirPanelOptions.value.find((o) => o.value === panel)?.label || ''
+    message.success($t('siteDirectory.addSuccess', { name: wTitle(widget), panel: panelLabel }))
     return
   }
   // 兜底提示（当前 WIDGETS 仅含内置工具,此分支不会触发,保留以备扩展）
@@ -573,9 +595,16 @@ function addWidget(widget) {
                     </div>
                   </div>
                 </button>
-                <button class="widget-add" @click="addWidget(w)">
-                  <RiAddLine size="14" aria-hidden="true" />
-                  <span>{{ $t('common.add') }}</span>
+                <button
+                  class="widget-add"
+                  :class="{ added: isWidgetAdded(w) }"
+                  :disabled="isWidgetAdded(w)"
+                  :aria-disabled="isWidgetAdded(w)"
+                  @click="addWidget(w)"
+                >
+                  <RiCheckLine v-if="isWidgetAdded(w)" size="14" aria-hidden="true" />
+                  <RiAddLine v-else size="14" aria-hidden="true" />
+                  <span>{{ isWidgetAdded(w) ? $t('siteDirectory.added') : $t('common.add') }}</span>
                 </button>
               </li>
             </ul>
@@ -975,12 +1004,19 @@ function addWidget(widget) {
   font-weight: 500;
   color: #fff;
   background: @accent-gradient;
-  transition: transform @tr, box-shadow @tr;
+  transition: transform @tr, box-shadow @tr, background @tr;
   flex-shrink: 0;
 
-  &:hover {
+  &:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px color-mix(in srgb, @accent 0.35%, transparent);
+  }
+
+  /* 已添加：灰化 + 禁用（对齐 .dir-add.added 的状态语言） */
+  &.added {
+    background: rgba(31, 41, 55, 0.08);
+    color: @text-soft;
+    cursor: default;
   }
 }
 
