@@ -37,6 +37,7 @@ import { useSettingsStore } from '@/stores/settings'
 import { usePanelsStore } from '@/stores/panels'
 import { useUiStore } from '@/stores/ui'
 import { setLanguage, $t } from '@/composables/useI18n'
+import { useMessage } from '@/composables/useMessage'
 import { useUpdateChecker } from '@/composables/useUpdateChecker'
 import { storeToRefs } from 'pinia'
 import * as db from '@/db'
@@ -45,6 +46,7 @@ import { TOOL_KINDS, TOOLS_BY_KIND, toolActionUrl } from '@/config/tools'
 const sitesStore = useSitesStore()
 const { sites, loading, currentPanel } = storeToRefs(sitesStore)
 const { load, add, update, remove, move, setPanel } = sitesStore
+const message = useMessage()
 const settingsStore = useSettingsStore()
 const { settings, backgroundStyle, isDark } = storeToRefs(settingsStore)
 const {
@@ -288,6 +290,7 @@ async function handleSave(site) {
 /** 来自右键菜单：删除 */
 async function handleRemoveSite(site) {
   await remove(site.id)
+  message.success($t('siteContextMenu.deleteSuccess', { name: site.name }))
 }
 
 /** 来自右键菜单：调整大小 */

@@ -274,6 +274,7 @@ export default {
     resize: '调整大小',
     confirmDeleteTitle: '删除站点',
     confirmDeleteMessage: '确定要删除「{name}」吗？',
+    deleteSuccess: '已删除「{name}」',
   },
 
   // 待办弹窗

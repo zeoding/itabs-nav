@@ -530,7 +530,7 @@ watch(
   font-size: 11px;
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(135deg, @danger, #f97316);
+  background: @danger-gradient;
   border-radius: 6px;
   padding: 2px 8px;
 }

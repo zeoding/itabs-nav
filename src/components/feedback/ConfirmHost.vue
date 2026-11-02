@@ -97,7 +97,7 @@ watch(visible, (v) => {
   margin-bottom: 4px;
 
   &.danger {
-    background: linear-gradient(135deg, @danger, #f59e0b);
+    background: @danger-gradient;
   }
 }
 
@@ -152,7 +152,7 @@ watch(visible, (v) => {
   }
 
   &.danger {
-    background: linear-gradient(135deg, @danger, #f97316);
+    background: @danger-gradient;
 
     &:hover {
       box-shadow: 0 6px 18px fade(@danger, 35%);

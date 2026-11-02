@@ -265,6 +265,7 @@ export default {
     resize: 'Resize',
     confirmDeleteTitle: 'Delete site',
     confirmDeleteMessage: 'Delete "{name}"?',
+    deleteSuccess: '"{name}" deleted',
   },
 
   todo: {
