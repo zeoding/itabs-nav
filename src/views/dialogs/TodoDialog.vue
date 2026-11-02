@@ -13,6 +13,7 @@ import {
   RiDeleteBinLine,
   RiAddLine,
   RiDragMoveLine,
+  RiInboxLine,
 } from '@remixicon/vue'
 
 const props = defineProps({
@@ -322,6 +323,7 @@ function relativeTime(ts) {
   <BaseDialog
     :open="open"
     :title="$t('todo.title')"
+    height="min(640px, 86vh)"
     max-height="86vh"
     padding="24px 26px"
     @close="close"
@@ -450,9 +452,13 @@ function relativeTime(ts) {
           </button>
           </form>
 
-          <div v-if="todos.length === 0" class="empty">{{ $t('todo.empty') }}</div>
+          <div v-if="todos.length === 0" class="empty">
+            <RiInboxLine class="empty-icon" size="36" aria-hidden="true" />
+            <span>{{ $t('todo.empty') }}</span>
+          </div>
           <div v-else-if="currentList.length === 0" class="empty">
-            {{ tab === 'done' ? $t('todo.emptyDone') : $t('todo.emptyUndone') }}
+            <RiInboxLine class="empty-icon" size="36" aria-hidden="true" />
+            <span>{{ tab === 'done' ? $t('todo.emptyDone') : $t('todo.emptyUndone') }}</span>
           </div>
           <ul v-else class="todo-list">
             <li
@@ -530,7 +536,10 @@ function relativeTime(ts) {
 
         <!-- 回收站视图-->
         <template v-else>
-          <div v-if="deleted.length === 0" class="empty">{{ $t('todo.emptyTrash') }}</div>
+          <div v-if="deleted.length === 0" class="empty">
+            <RiInboxLine class="empty-icon" size="36" aria-hidden="true" />
+            <span>{{ $t('todo.emptyTrash') }}</span>
+          </div>
           <ul v-else class="todo-list">
             <li
               v-for="todo in deleted"
@@ -853,10 +862,22 @@ export default {
 }
 
 .empty {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   text-align: center;
   padding: 36px 12px;
   color: @text-soft;
   font-size: 13px;
+}
+
+.empty-icon {
+  color: @accent;
+  opacity: 0.65;
 }
 
 .todo-list {

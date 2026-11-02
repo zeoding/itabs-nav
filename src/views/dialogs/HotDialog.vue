@@ -72,8 +72,8 @@ watch(
   <BaseDialog
     :open="open"
     :title="$t('hot.title')"
-    height="500px"
-    max-height="90vh"
+    height="min(640px, 86vh)"
+    max-height="86vh"
     padding="22px 24px 22px"
     fs-padding="24px 32px"
     @close="close"
