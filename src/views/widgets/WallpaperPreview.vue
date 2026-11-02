@@ -406,12 +406,18 @@ onMounted(async () => {
 
     <!-- 内容区（滚动区：搜索栏/分类/排序固定在外不随滚动消失） -->
     <div ref="listEl" class="list-area">
-      <div v-if="loading && !items.length" class="state">{{ $t('common.loading') }}</div>
+      <div v-if="loading && !items.length" class="state loading-state" role="status">
+        <RiLoader4Line class="loading-icon" size="36" aria-hidden="true" />
+        <span>{{ $t('common.loading') }}</span>
+      </div>
       <div v-else-if="error && !items.length" class="state error">
         <p>{{ error }}</p>
         <button type="button" class="btn primary" @click="load(true)">{{ $t('wallpaper.retry') }}</button>
       </div>
-      <div v-else-if="!items.length" class="state">{{ $t('wallpaper.empty') }}</div>
+      <div v-else-if="!items.length" class="state">
+        <RiImageLine class="empty-icon" size="36" aria-hidden="true" />
+        <span>{{ $t('wallpaper.empty') }}</span>
+      </div>
       <ul v-else class="grid">
         <li v-for="item in items" :key="item.id" class="cell">
           <button type="button" class="thumb-btn" @click="openLightbox(item)" :title="item.resolution">
@@ -644,10 +650,25 @@ onMounted(async () => {
   align-items: center;
   gap: 12px;
 
+  &.loading-state {
+    min-height: 100%;
+    justify-content: center;
+  }
+
   &.error p {
     margin: 0;
     color: @danger;
   }
+}
+
+.loading-icon {
+  color: @accent;
+  animation: spin360 1s linear infinite;
+}
+
+.empty-icon {
+  color: @accent;
+  opacity: 0.65;
 }
 
 /* 缩略图网格 */

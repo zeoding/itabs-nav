@@ -321,12 +321,13 @@ onBeforeUnmount(stopPolling)
     <div v-if="error" class="error-bar">{{ error }}</div>
 
     <!-- 收件箱 -->
-    <div v-if="loading && messages.length === 0" class="status">
-      <RiLoader4Line size="28" class="spin" aria-hidden="true" />
+    <div v-if="loading && messages.length === 0" class="status initializing" role="status">
+      <RiLoader4Line size="36" class="spin loading-icon" aria-hidden="true" />
       <span>正在初始化邮箱...</span>
     </div>
-    <div v-else-if="messages.length === 0" class="status muted">
-      暂无邮件，等待接收中...
+    <div v-else-if="messages.length === 0" class="status muted empty-inbox">
+      <RiMailLine class="empty-icon" size="36" aria-hidden="true" />
+      <span>暂无邮件，等待接收中...</span>
     </div>
     <div v-else class="msg-list">
       <button
@@ -482,6 +483,18 @@ onBeforeUnmount(stopPolling)
     color: @text-soft;
     opacity: 0.7;
   }
+
+  &.initializing,
+  &.empty-inbox {
+    min-height: 0;
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+.loading-icon,
+.empty-icon {
+  color: @accent;
 }
 
 /* 邮件列表 */
