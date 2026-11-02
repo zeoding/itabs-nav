@@ -1,9 +1,9 @@
 <script setup>
 /**
  * 小组件任务栏（类 Windows 任务栏）
- * - 小组件弹窗最小化后在此承接：左侧为已最小化的窗口，点击还原
+ * - 小组件弹窗最小化后在此承接：左侧为已最小化的窗口列表（多窗口），点击还原
  * - 每日一言固定最右侧（与 SayingFooter 共享同一份每日缓存数据，不重复请求）
- * - 仅在有最小化窗口时由父级挂载；关闭/还原经事件通知父级
+ * - 仅在有最小化窗口时由父级挂载；关闭/还原经事件通知父级（事件携带窗口对象）
  */
 import { ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
@@ -19,10 +19,8 @@ import {
 } from '@remixicon/vue'
 
 defineProps({
-  /** 被最小化的 widget：{ key, icon, ... } */
-  widget: { type: Object, default: null },
-  /** 任务栏上显示的窗口标题（父级传入本地化文案） */
-  title: { type: String, default: '' },
+  /** 已最小化的窗口列表：[{ key, icon, title }]，保持最小化先后顺序 */
+  windows: { type: Array, default: () => [] },
 })
 const emit = defineEmits(['restore', 'close'])
 
@@ -63,24 +61,25 @@ function onRefresh(e) {
 
 <template>
   <div class="taskbar">
-    <!-- 左：已最小化的窗口 -->
+    <!-- 左：已最小化的窗口（多窗口列表，保持最小化先后顺序） -->
     <div class="task-apps">
       <div
-        v-if="widget"
+        v-for="win in windows"
+        :key="win.key"
         class="task-app is-active"
         role="button"
         tabindex="0"
         v-tip="$t('taskbar.restoreTitle')"
-        @click="emit('restore')"
-        @keydown.enter="emit('restore')"
+        @click="emit('restore', win)"
+        @keydown.enter="emit('restore', win)"
       >
-        <span class="task-emoji" aria-hidden="true">{{ widget.icon }}</span>
-        <span class="task-name">{{ title }}</span>
+        <span class="task-emoji" aria-hidden="true">{{ win.icon }}</span>
+        <span class="task-name">{{ win.title }}</span>
         <button
           class="task-close"
           v-tip="$t('common.close')"
           :aria-label="$t('common.close')"
-          @click.stop="emit('close')"
+          @click.stop="emit('close', win)"
         >
           <RiCloseLine size="13" aria-hidden="true" />
         </button>

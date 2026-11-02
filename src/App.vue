@@ -84,10 +84,10 @@ const todoOpen = ref(false)
 const calendarOpen = ref(false)
 const hotOpen = ref(false)
 const worldTimeOpen = ref(false)
-/** panel-grid 工具卡点击触发的预览弹窗状态 */
+/** panel-grid 工具卡点击触发的预览弹窗状态（当前活动窗口） */
 const previewWidget = ref(null)
-/** 预览弹窗最小化：弹窗隐藏，任务栏承接（widget 保留以便还原） */
-const previewMinimized = ref(false)
+/** 多窗口最小化注册表：key=widget.key（同 kind 单实例），值=true 表示已最小化到任务栏 */
+const minimizedWindows = reactive({})
 
 /* 弹窗「首次打开才挂载」：defineAsyncComponent 的 chunk 在组件首次渲染时
    就会下载，若常驻渲染，dialogs 分包在启动时即被拉取，懒加载形同虚设。
@@ -113,20 +113,35 @@ const previewOpen = computed({
   get: () => previewWidget.value !== null,
   set: (v) => {
     if (!v) {
+      const key = previewWidget.value?.key
+      if (key) delete minimizedWindows[key]
       previewWidget.value = null
-      previewMinimized.value = false
     }
   },
 })
-/** 任务栏可见：有最小化的预览窗口时 */
-const taskbarVisible = computed(
-  () => previewWidget.value !== null && previewMinimized.value
+/** 任务栏窗口列表（保持最小化先后顺序）：{ key, icon, title }，WidgetTaskbar 据此渲染多窗口 */
+const minimizedList = computed(() =>
+  Object.keys(minimizedWindows)
+    .filter((k) => minimizedWindows[k])
+    .map((k) => {
+      const tool = TOOLS_BY_KIND[k]
+      return { key: k, icon: tool?.icon || '🧩', title: tool ? $t(tool.titleKey) : k }
+    })
 )
-/** 任务栏窗口标题（与 WidgetPreviewDialog 内文案保持一致；走 i18n，随语言切换更新） */
-const previewTitle = computed(() => {
-  const kind = previewWidget.value?.key
-  const tool = kind ? TOOLS_BY_KIND[kind] : null
-  return tool ? $t(tool.titleKey) : kind || ''
+/** 任务栏可见：有任一已最小化的预览窗口时（支持多窗口并存） */
+const taskbarVisible = computed(() => minimizedList.value.length > 0)
+/** 当前活动窗口是否处于最小化（writable：弹窗 emit update:minimized 时写入注册表） */
+const previewMinimized = computed({
+  get: () => {
+    const key = previewWidget.value?.key
+    return key ? minimizedWindows[key] === true : false
+  },
+  set: (v) => {
+    const key = previewWidget.value?.key
+    if (!key) return
+    if (v) minimizedWindows[key] = true
+    else delete minimizedWindows[key]
+  },
 })
 
 /** 版本更新检查：随 App 根组件生命周期启停（启动首检 + 轮询 + 可见补检） */
@@ -335,9 +350,26 @@ async function handleAddTool(tool) {
  * - WidgetPreviewDialog 直接渲染对应的工具组件(目前 split-text → SplitTextPanel)
  */
 function handleToolClick(widget) {
+  // 同 kind 已最小化 → 直接还原，不重复开窗（单实例语义）
+  if (widget?.key && minimizedWindows[widget.key]) {
+    delete minimizedWindows[widget.key]
+  }
   previewWidget.value = widget
   // 新开窗口时确保可见（之前最小化的状态不延续）
-  previewMinimized.value = false
+}
+
+/** 任务栏点击窗口：还原并激活该窗口（从最小化注册表摘除，预览弹窗切到它） */
+function restoreWindow(win) {
+  delete minimizedWindows[win.key]
+  // 直接切换活动窗口到还原目标（互切语义）；icon 从任务栏列表带回（弹窗头部 emoji 用）
+  previewWidget.value = { key: win.key, icon: win.icon }
+}
+
+/** 任务栏窗口 × 按钮：只关闭该最小化窗口，不影响其他窗口和当前活动窗口 */
+function closeMinimized(win) {
+  delete minimizedWindows[win.key]
+  // 关闭的正是当前活动窗口（最小化态）→ 一并收起预览弹窗
+  if (previewWidget.value?.key === win.key) previewWidget.value = null
 }
 
 async function handleReset() {
@@ -459,13 +491,12 @@ async function handleRestored() {
     <!-- 每日一言页脚（任务栏承接最小化窗口时隐藏，避免重复） -->
     <SayingFooter v-if="!taskbarVisible" />
 
-    <!-- 最小化任务栏：类 Windows 底栏（窗口还原入口 + 一言 + 时钟） -->
+    <!-- 最小化任务栏：类 Windows 底栏（多窗口还原入口 + 一言） -->
     <WidgetTaskbar
       v-if="taskbarVisible"
-      :widget="previewWidget"
-      :title="previewTitle"
-      @restore="previewMinimized = false"
-      @close="previewOpen = false"
+      :windows="minimizedList"
+      @restore="restoreWindow"
+      @close="closeMinimized"
     />
 
     <!-- 弹窗「首次打开才挂载」：chunk 按需下载（见 dialogMounted 注释） -->
@@ -499,6 +530,7 @@ async function handleRestored() {
       v-model:minimized="previewMinimized"
       :widget="previewWidget"
     />
+
     <ConfirmHost />
     <MessageHost />
     <TipHost />
