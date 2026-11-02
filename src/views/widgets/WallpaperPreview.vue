@@ -406,7 +406,7 @@ onMounted(async () => {
 
     <!-- 内容区（滚动区：搜索栏/分类/排序固定在外不随滚动消失） -->
     <div ref="listEl" class="list-area">
-      <div v-if="loading && !items.length" class="state loading-state" role="status">
+      <div v-if="loading && !items.length" class="state" role="status">
         <RiLoader4Line class="loading-icon" size="36" aria-hidden="true" />
         <span>{{ $t('common.loading') }}</span>
       </div>
@@ -602,6 +602,7 @@ onMounted(async () => {
 
 /* 内容滚动区（搜索栏/分类/排序固定在外）；滚动条视觉隐藏，滚轮/触摸滚动不受影响 */
 .list-area {
+  position: relative;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -641,19 +642,17 @@ onMounted(async () => {
 
 /* 状态 */
 .state {
+  position: absolute;
+  inset: 0;
   text-align: center;
   font-size: 13px;
   color: @text-soft;
-  padding: 40px 12px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 12px;
-
-  &.loading-state {
-    min-height: 100%;
-    justify-content: center;
-  }
 
   &.error p {
     margin: 0;
